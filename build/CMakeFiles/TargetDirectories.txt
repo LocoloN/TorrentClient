@@ -1,3 +1,0 @@
-E:/Projects/TorrentClient/build/CMakeFiles/TorrentClient.dir
-E:/Projects/TorrentClient/build/CMakeFiles/edit_cache.dir
-E:/Projects/TorrentClient/build/CMakeFiles/rebuild_cache.dir
