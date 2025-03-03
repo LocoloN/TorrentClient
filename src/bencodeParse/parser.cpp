@@ -24,7 +24,7 @@ bool parser::openFile(const std::filesystem::path &path)
 }
 /// @brief checks opened file for .torrent extencion and if it is open and ready for read
 /// @return true if everything is ok
-bool parser::runFileChecks() 
+inline bool parser::runFileChecks() 
 {
     bool &&result = (openedFilePath.extension() == ".torrent");
     result = (result && (input.peek() == 'd'));
@@ -40,7 +40,7 @@ bool parser::readChunk(std::array<char, chunkSize> &chunk){
 }
 bool parser::parseToSequence()
 {
-    return true;
+    if(!runFileChecks()) throw new std::runtime_error("file reading error");
 }
 bool parser::readRest(std::array<char, chunkSize> &)
 {
