@@ -40,8 +40,6 @@ public:
         
         return result;
     }
-
-
     bool FillFakeSequence()
     { 
         bencodeElem benchmark;
@@ -57,7 +55,6 @@ public:
         return (*(testObj.sequence.get()) == benchmark);
     }
     
-
 };
 
 parserTests helper;
@@ -87,4 +84,21 @@ TEST_CASE("Get key from bencodeElem variant", "[parser][nonMember]")
     REQUIRE(getStoredTypeAsKey(bencodeElem(std::vector<bencodeElem>())) == bencodeKeySymbols::liststart);
     REQUIRE(getStoredTypeAsKey(bencodeElem(std::map<std::string, bencodeElem>())) == bencodeKeySymbols::mapstart);
 }
+TEST_CASE("Get key from char test","[parser][nonMember]")
+{
 
+    REQUIRE(getKeyFromChar('i') == bencodeKeySymbols::intstart);
+    REQUIRE(getKeyFromChar('l') == bencodeKeySymbols::liststart);
+    REQUIRE(getKeyFromChar('d') == bencodeKeySymbols::mapstart);
+    REQUIRE(getKeyFromChar('e') == bencodeKeySymbols::end);
+    CHECK(getKeyFromChar('0') == bencodeKeySymbols::intstart);
+    CHECK(getKeyFromChar('1') == bencodeKeySymbols::stringstart);
+    CHECK(getKeyFromChar('2') == bencodeKeySymbols::stringstart);
+    CHECK(getKeyFromChar('3') == bencodeKeySymbols::stringstart);
+    CHECK(getKeyFromChar('4') == bencodeKeySymbols::stringstart);
+    CHECK(getKeyFromChar('5') == bencodeKeySymbols::stringstart);
+    CHECK(getKeyFromChar('6') == bencodeKeySymbols::stringstart);
+    CHECK(getKeyFromChar('7') == bencodeKeySymbols::stringstart);
+    CHECK(getKeyFromChar('8') == bencodeKeySymbols::stringstart);
+    CHECK(getKeyFromChar('9') == bencodeKeySymbols::stringstart);
+}

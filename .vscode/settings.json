@@ -111,7 +111,8 @@
         "xutility": "cpp",
         "text_encoding": "cpp",
         "filesystem": "cpp",
-        "xtree": "cpp"
+        "xtree": "cpp",
+        "stack": "cpp"
     },
     "C_Cpp.default.compilerPath": "E:/Programms/MSYS2/ucrt64/bin/g++.exe"
 }

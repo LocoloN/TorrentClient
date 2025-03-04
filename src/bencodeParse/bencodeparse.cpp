@@ -47,17 +47,14 @@ void bencodeElem::operator= (const bencodeElem& param)
 {
     this->data = param.data;
 }
-
 template <typename Map>
 bool compareMaps (Map const &lhs, Map const &rhs) {
     return lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
 }
-
 bool bencodeElem::operator!= (const bencodeElem& param) const
 {
     return !(this->data == param.data);
 }
-
 bool bencodeElem::operator==(const bencodeElem& param) const
 {
     switch (getStoredTypeAsKey(param))
@@ -81,7 +78,6 @@ bool bencodeElem::operator==(const bencodeElem& param) const
     break;
     }
 }
-
 template<typename T>
 bencodeKeySymbols getKeyFromType();
 template<>
@@ -108,4 +104,27 @@ bencodeKeySymbols getStoredTypeAsKey(const bencodeElem& param){
     return std::visit([](auto &&arg) -> bencodeKeySymbols {
         return getKeyFromType<std::decay_t<decltype(arg)>>();
     }, param.data);
+}
+
+bencodeKeySymbols getKeyFromChar(const char &param)
+{
+    switch (param)
+    {
+    case 'i':
+        return bencodeKeySymbols::intstart;
+    break;
+    case 'l':
+        return bencodeKeySymbols::liststart;
+    break;
+    case 'd':
+        return bencodeKeySymbols::mapstart;
+    break;
+    case 'e':
+        return bencodeKeySymbols::end;
+    break;
+    default:
+        if(isdigit(param)) return stringstart;
+    break;
+    }
+    throw std::runtime_error("wrong char error");
 }

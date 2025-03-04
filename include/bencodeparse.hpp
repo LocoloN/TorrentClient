@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 #include <vector>
 #include <map>
@@ -8,26 +9,23 @@
 #include <memory>
 
 class bencodeElem;
-
 using bencodeDataType = std::variant<std::string, int, std::vector<bencodeElem>, std::map<std::string, bencodeElem>>;
-
 enum bencodeKeySymbols
 {
-    stringstart = 0,
-    intstart = 1,
-    liststart = 2,
-    mapstart = 3,
-    end = 4
-    
+    stringstart = 0, // <length of string>:<string itself>
+    intstart = 1, // i<integer>e
+    liststart = 2, // l<other bencode types>e
+    mapstart = 3, // d<bencode string><other bencode types>e
+    end = 4  
 };
 
 template <typename Map>
 bool compareMaps (Map const &lhs, Map const &rhs);
 
 bencodeKeySymbols getStoredTypeAsKey(const bencodeElem& param);
+bencodeKeySymbols getKeyFromChar(const char param);
 
-class bencodeElem
-{ 
+class bencodeElem { 
 public:
     bencodeDataType data;
     bencodeElem();
@@ -49,27 +47,27 @@ public:
     /// @return this
     bencodeDataType& mapInit();
 
+    
 
     void operator= (const bencodeElem&);
     bool operator== (const bencodeElem&) const;
     bool operator!= (const bencodeElem&) const;
 };
-
 class parser {
 private:
     static constexpr size_t chunkSize = 4096;
     std::vector<char> buffer;
     std::filesystem::path openedFilePath;
-    std::ifstream input;
-    friend class parserTests;
-    
-    bool runFileChecks();
+    mutable std::ifstream input;
+    bool readingChecks() const;
     bool readChunk(std::array<char, chunkSize> &);
     bool readRest(std::array<char, chunkSize> &);
-public:
+    friend class parserTests;
+    public:
     std::shared_ptr<bencodeElem> sequence;
     parser();
-    parser(std::filesystem::path);
+    parser(const std::filesystem::path filePath);
+    bool runFileChecks() const;
     bool openFile(const std::filesystem::path &);
     bool parseToSequence();
 };
