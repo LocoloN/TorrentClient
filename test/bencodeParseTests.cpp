@@ -51,10 +51,13 @@ public:
         });
 
         testObj.openFile(fakeTorrentpath);
-        testObj.parseToSequence();
-        return (*(testObj.sequence.get()) == benchmark);
+        testObj.parseToTree();
+        return (*(testObj.parseToTree().get()) == benchmark);
     }
-    
+    inline bencodeKeySymbols getKeyFromCharTest(const char & param)
+    {
+        return testObj.getKeyFromChar(param);
+    }
 };
 
 parserTests helper;
@@ -86,21 +89,21 @@ TEST_CASE("Get key from bencodeElem variant", "[parser][nonMember]")
 }
 TEST_CASE("Get key from char test","[parser][nonMember]")
 {
-
-    REQUIRE(parser::getKeyFromChar('i') == bencodeKeySymbols::intstart);
-    REQUIRE(parser::getKeyFromChar('l') == bencodeKeySymbols::liststart);
-    REQUIRE(parser::getKeyFromChar('d') == bencodeKeySymbols::mapstart);
-    REQUIRE(parser::getKeyFromChar('e') == bencodeKeySymbols::end);
-    CHECK(parser::getKeyFromChar('0') == bencodeKeySymbols::stringstart);
-    CHECK(parser::getKeyFromChar('1') == bencodeKeySymbols::stringstart);
-    CHECK(parser::getKeyFromChar('2') == bencodeKeySymbols::stringstart);
-    CHECK(parser::getKeyFromChar('3') == bencodeKeySymbols::stringstart);
-    CHECK(parser::getKeyFromChar('4') == bencodeKeySymbols::stringstart);
-    CHECK(parser::getKeyFromChar('5') == bencodeKeySymbols::stringstart);
-    CHECK(parser::getKeyFromChar('6') == bencodeKeySymbols::stringstart);
-    CHECK(parser::getKeyFromChar('7') == bencodeKeySymbols::stringstart);
-    CHECK(parser::getKeyFromChar('8') == bencodeKeySymbols::stringstart);
-    CHECK(parser::getKeyFromChar('9') == bencodeKeySymbols::stringstart);
+    helper.initialiseTestObj();
+    REQUIRE(helper.getKeyFromCharTest('i') == bencodeKeySymbols::intstart);
+    REQUIRE(helper.getKeyFromCharTest('l') == bencodeKeySymbols::liststart);
+    REQUIRE(helper.getKeyFromCharTest('d') == bencodeKeySymbols::mapstart);
+    REQUIRE(helper.getKeyFromCharTest('e') == bencodeKeySymbols::end);
+    CHECK(helper.getKeyFromCharTest('0') == bencodeKeySymbols::stringstart);
+    CHECK(helper.getKeyFromCharTest('1') == bencodeKeySymbols::stringstart);
+    CHECK(helper.getKeyFromCharTest('2') == bencodeKeySymbols::stringstart);
+    CHECK(helper.getKeyFromCharTest('3') == bencodeKeySymbols::stringstart);
+    CHECK(helper.getKeyFromCharTest('4') == bencodeKeySymbols::stringstart);
+    CHECK(helper.getKeyFromCharTest('5') == bencodeKeySymbols::stringstart);
+    CHECK(helper.getKeyFromCharTest('6') == bencodeKeySymbols::stringstart);
+    CHECK(helper.getKeyFromCharTest('7') == bencodeKeySymbols::stringstart);
+    CHECK(helper.getKeyFromCharTest('8') == bencodeKeySymbols::stringstart);
+    CHECK(helper.getKeyFromCharTest('9') == bencodeKeySymbols::stringstart);
 }
 
 TEST_CASE("Parse to element test","[parser][member]")

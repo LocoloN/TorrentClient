@@ -52,25 +52,23 @@ public:
     bool operator== (const bencodeElem&) const;
     bool operator!= (const bencodeElem&) const;
 };
+
 class parser {
 private:
-    //~parser();
-    static constexpr size_t chunkSize = 4096;
-    std::vector<char> buffer;
-    std::filesystem::path openedFilePath;
-    mutable std::ifstream input;
-    bool readingChecks() const;
-    bool readChunk(std::array<char, chunkSize> &);
-    bool readRest(std::array<char, chunkSize> &); // useless
-    friend class parserTests;
+static constexpr size_t chunkSize = 4096;
+std::filesystem::path openedFilePath;
+mutable std::ifstream input;
+bool readingChecks() const;
+bool readChunk(std::array<char, chunkSize> &);
+friend class parserTests;
+bencodeKeySymbols getKeyFromChar(const char &param);
 public:
-    std::shared_ptr<bencodeElem> sequence;
     parser();
     parser(const std::filesystem::path filePath);
-    bool runFileChecks() const;
+    parser(const parser &parser);
+    void runFileChecks() const;
     bool openFile(const std::filesystem::path &);
-    bool parseToSequence();
-    static bencodeKeySymbols getKeyFromChar(const char &param);
+    std::shared_ptr<bencodeElem> parseToTree();
     static bencodeKeySymbols getStoredTypeAsKey(const bencodeElem& param);
     /// @brief converts string to T
     /// @tparam supports int and std::string
@@ -80,6 +78,7 @@ public:
     /// @return int or std::string
     template <typename T>
     static T bencodeToType(const std::string_view &param);
+    void operator= (const parser& param);
 };
 template <>
 inline int parser::bencodeToType<int>(const std::string_view & param)
