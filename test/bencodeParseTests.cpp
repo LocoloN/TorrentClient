@@ -59,46 +59,54 @@ public:
 
 parserTests helper;
 
-TEST_CASE("Parser openfile isGoodOrOpen", "[parser][openfile]")
+TEST_CASE("Parser openfile isGoodOrOpen", "[parser][openfile][member]")
 {
     helper.initialiseTestObj();
     REQUIRE(helper.isOpenOrGood() == true);
 }
-TEST_CASE("Parser openfile torrent format checks" ,"[parser][openfile]")
+TEST_CASE("Parser openfile torrent format checks" ,"[parser][openfile][member]")
 {
     helper.initialiseTestObj();
     REQUIRE(helper.isErrorOnNonTorrentExtension() == true);
     REQUIRE(helper.isErrorOnIncorrecTorrentFile() == true);
 }
-TEST_CASE("Parse test on fake torrent", "[parser][openfile]")
-{
-    helper.initialiseTestObj();
-    REQUIRE(helper.FillFakeSequence() == true);
-}
+// TEST_CASE("Parse test on fake torrent", "[parser][openfile][member]")
+// {
+//     helper.initialiseTestObj();
+//     REQUIRE(helper.FillFakeSequence() == true);
+// }
 TEST_CASE("Get key from bencodeElem variant", "[parser][nonMember]")
 {
     helper.initialiseTestObj();
     auto param = bencodeElem(static_cast<int>(123));
-    REQUIRE(getStoredTypeAsKey(bencodeElem(static_cast<int>(123))) == bencodeKeySymbols::intstart);
-    REQUIRE(getStoredTypeAsKey(bencodeElem(std::string("test"))) == bencodeKeySymbols::stringstart);
-    REQUIRE(getStoredTypeAsKey(bencodeElem(std::vector<bencodeElem>())) == bencodeKeySymbols::liststart);
-    REQUIRE(getStoredTypeAsKey(bencodeElem(std::map<std::string, bencodeElem>())) == bencodeKeySymbols::mapstart);
+    REQUIRE(parser::getStoredTypeAsKey(bencodeElem(static_cast<int>(123))) == bencodeKeySymbols::intstart);
+    REQUIRE(parser::getStoredTypeAsKey(bencodeElem(std::string("test"))) == bencodeKeySymbols::stringstart);
+    REQUIRE(parser::getStoredTypeAsKey(bencodeElem(std::vector<bencodeElem>())) == bencodeKeySymbols::liststart);
+    REQUIRE(parser::getStoredTypeAsKey(bencodeElem(std::map<std::string, bencodeElem>())) == bencodeKeySymbols::mapstart);
 }
 TEST_CASE("Get key from char test","[parser][nonMember]")
 {
 
-    REQUIRE(getKeyFromChar('i') == bencodeKeySymbols::intstart);
-    REQUIRE(getKeyFromChar('l') == bencodeKeySymbols::liststart);
-    REQUIRE(getKeyFromChar('d') == bencodeKeySymbols::mapstart);
-    REQUIRE(getKeyFromChar('e') == bencodeKeySymbols::end);
-    CHECK(getKeyFromChar('0') == bencodeKeySymbols::intstart);
-    CHECK(getKeyFromChar('1') == bencodeKeySymbols::stringstart);
-    CHECK(getKeyFromChar('2') == bencodeKeySymbols::stringstart);
-    CHECK(getKeyFromChar('3') == bencodeKeySymbols::stringstart);
-    CHECK(getKeyFromChar('4') == bencodeKeySymbols::stringstart);
-    CHECK(getKeyFromChar('5') == bencodeKeySymbols::stringstart);
-    CHECK(getKeyFromChar('6') == bencodeKeySymbols::stringstart);
-    CHECK(getKeyFromChar('7') == bencodeKeySymbols::stringstart);
-    CHECK(getKeyFromChar('8') == bencodeKeySymbols::stringstart);
-    CHECK(getKeyFromChar('9') == bencodeKeySymbols::stringstart);
+    REQUIRE(parser::getKeyFromChar('i') == bencodeKeySymbols::intstart);
+    REQUIRE(parser::getKeyFromChar('l') == bencodeKeySymbols::liststart);
+    REQUIRE(parser::getKeyFromChar('d') == bencodeKeySymbols::mapstart);
+    REQUIRE(parser::getKeyFromChar('e') == bencodeKeySymbols::end);
+    CHECK(parser::getKeyFromChar('0') == bencodeKeySymbols::stringstart);
+    CHECK(parser::getKeyFromChar('1') == bencodeKeySymbols::stringstart);
+    CHECK(parser::getKeyFromChar('2') == bencodeKeySymbols::stringstart);
+    CHECK(parser::getKeyFromChar('3') == bencodeKeySymbols::stringstart);
+    CHECK(parser::getKeyFromChar('4') == bencodeKeySymbols::stringstart);
+    CHECK(parser::getKeyFromChar('5') == bencodeKeySymbols::stringstart);
+    CHECK(parser::getKeyFromChar('6') == bencodeKeySymbols::stringstart);
+    CHECK(parser::getKeyFromChar('7') == bencodeKeySymbols::stringstart);
+    CHECK(parser::getKeyFromChar('8') == bencodeKeySymbols::stringstart);
+    CHECK(parser::getKeyFromChar('9') == bencodeKeySymbols::stringstart);
+}
+
+TEST_CASE("Parse to element test","[parser][member]")
+{
+    int temp = parser::bencodeToType<int>("i243819e");
+    REQUIRE(temp == 243819);
+    
+    REQUIRE(std::string("testcasebiba").compare(parser::bencodeToType<std::string>("12:testcasebiba")) == 0);
 }

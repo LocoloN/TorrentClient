@@ -57,7 +57,7 @@ bool bencodeElem::operator!= (const bencodeElem& param) const
 }
 bool bencodeElem::operator==(const bencodeElem& param) const
 {
-    switch (getStoredTypeAsKey(param))
+    switch (parser::getStoredTypeAsKey(param))
     {
         case intstart:
             return std::get<int>(this->data) == std::get<int>(param.data);
@@ -77,54 +77,4 @@ bool bencodeElem::operator==(const bencodeElem& param) const
         return false;
     break;
     }
-}
-template<typename T>
-bencodeKeySymbols getKeyFromType();
-template<>
-bencodeKeySymbols getKeyFromType<std::string>(){
-    return bencodeKeySymbols::stringstart;
-}
-template<>
-bencodeKeySymbols getKeyFromType<int>(){
-    return bencodeKeySymbols::intstart;
-}
-template<>
-bencodeKeySymbols getKeyFromType<std::vector<bencodeElem>>(){
-    return bencodeKeySymbols::liststart;
-}
-template<>
-bencodeKeySymbols getKeyFromType<std::map<std::string, bencodeElem>>(){
-    return bencodeKeySymbols::mapstart;
-}
-
-/// @brief returns bencodeKeySymbols value from one of bencodeDataType variant stored types
-/// @param param used to get bencodeKeySymbol
-/// @return bencodeKeySymbol from param
-bencodeKeySymbols getStoredTypeAsKey(const bencodeElem& param){
-    return std::visit([](auto &&arg) -> bencodeKeySymbols {
-        return getKeyFromType<std::decay_t<decltype(arg)>>();
-    }, param.data);
-}
-
-bencodeKeySymbols getKeyFromChar(const char &param)
-{
-    switch (param)
-    {
-    case 'i':
-        return bencodeKeySymbols::intstart;
-    break;
-    case 'l':
-        return bencodeKeySymbols::liststart;
-    break;
-    case 'd':
-        return bencodeKeySymbols::mapstart;
-    break;
-    case 'e':
-        return bencodeKeySymbols::end;
-    break;
-    default:
-        if(isdigit(param)) return stringstart;
-    break;
-    }
-    throw std::runtime_error("wrong char error");
 }
