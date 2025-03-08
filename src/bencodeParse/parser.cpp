@@ -51,16 +51,17 @@ inline bool parser::readingChecks() const
 {
     return (input.good() && input.fail() && input.bad());
 }
-/// @brief reads data size of chunkSize
+/// @brief reads data size of readingChunkSize
 /// @return false if end of file
-bool parser::readChunk(std::array<char, chunkSize> &chunk){
-    input.read(chunk.data(), chunkSize);
+bool parser::readChunk(std::array<char, readingChunkSize> &chunk){
+    input.read(chunk.data(), readingChunkSize);
     return input.eof();
 }
 /// @brief parses opened file to a bencodeElem tree
 /// @return std::shared_ptr<bencodeElem> to first element of tree, NULL if fail
 std::shared_ptr<bencodeElem> parser::parseToTree()
 {
+    std::string biba("asdasd");
     runFileChecks();
     try
     {
@@ -70,11 +71,10 @@ std::shared_ptr<bencodeElem> parser::parseToTree()
     {
         return NULL;
     }
-    std::shared_ptr<bencodeElem> result(new bencodeElem());
+    std::shared_ptr<bencodeElem> result(new bencodeElem(std::map<std::string, bencodeElem>()));
     unsigned int totalChunksNeeded = (std::filesystem::file_size(openedFilePath) / 2) + 1;
-    std::array<char, chunkSize> &&chunk = std::array<char, chunkSize>();
+    std::array<char, readingChunkSize> &&chunk = std::array<char, readingChunkSize>();
     std::stack<bencodeKeySymbols> currentScope;
-    result->mapInit();
     currentScope.push(mapstart);
 
     int temp = 0;
@@ -82,7 +82,7 @@ std::shared_ptr<bencodeElem> parser::parseToTree()
     {
         if(!readingChecks()) throw std::runtime_error("chunk reading error");
         readChunk(chunk);
-        for (size_t j = 1; j < chunkSize; j++)
+        for (size_t j = 1; j < readingChunkSize; j++)
         {
             currentScope.push(getKeyFromChar(chunk[i]));
             switch (currentScope.top())

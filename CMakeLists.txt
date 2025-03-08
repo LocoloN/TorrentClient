@@ -5,6 +5,8 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(SOURCE_FILES 
 src/main.cpp
+src/torrentFiles/torrentFileInfo.cpp
+src/torrentFiles/referringTorrentFile.cpp
 src/bencodeParse/bencodeparse.cpp
 src/bencodeParse/parser.cpp
 )

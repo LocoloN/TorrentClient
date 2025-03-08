@@ -18,31 +18,12 @@ bencodeElem::bencodeElem(const std::string &param) {
 bencodeElem::bencodeElem(const int &param) {
     data = param;
 }
-bencodeElem::bencodeElem(const std::vector<bencodeElem> &param) {
+bencodeElem::bencodeElem(const bencodeList &param) {
     data = (std::vector<bencodeElem>)param;
 }
-bencodeElem::bencodeElem(const std::map<std::string, bencodeElem> &param){
+bencodeElem::bencodeElem(const bencodeDict &param){
     data = param;
 }
-
-bencodeDataType& bencodeElem::stringInit()
-{
-    data = std::string();
-    return data;
-}
-bencodeDataType& bencodeElem::intInit() {
-    data = int();
-    return data;
-}
-bencodeDataType& bencodeElem::vectorInit() {
-    data = std::vector<bencodeElem>();
-    return data;
-}
-bencodeDataType& bencodeElem::mapInit() {
-    data = std::map<std::string, bencodeElem>();
-    return data;
-}
-
 void bencodeElem::operator= (const bencodeElem& param)
 {
     this->data = param.data;

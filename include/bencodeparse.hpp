@@ -10,7 +10,9 @@
 #include <charconv>
 
 class bencodeElem;
-using bencodeDataType = std::variant<std::string, int, std::vector<bencodeElem>, std::map<std::string, bencodeElem>>;
+using bencodeList = std::vector<bencodeElem>;
+using bencodeDict = std::map<std::string, bencodeElem>;
+using bencodeDataType = std::variant<std::string, int, bencodeList, bencodeDict>;
 enum bencodeKeySymbols
 {
     stringstart = 0, // <length of string>:<string itself>
@@ -23,31 +25,14 @@ enum bencodeKeySymbols
 template <typename Map>
 bool compareMaps (Map const &lhs, Map const &rhs);
 
-
 class bencodeElem { 
 public:
     bencodeDataType data;
     bencodeElem();
     bencodeElem(const std::string&);
     bencodeElem(const int& );
-    bencodeElem(const std::vector<bencodeElem>&);
-    bencodeElem(const std::map<std::string, bencodeElem>&);
-    
-    /// @brief initialises with std::string
-    /// @return pointer to data
-    bencodeDataType& stringInit();
-    /// @brief initialises with int
-    /// @return this
-    bencodeDataType& intInit();
-    /// @brief initialises with std::vector<bencodeElem>
-    /// @return this
-    bencodeDataType& vectorInit();
-    /// @brief initialises with std::map<std::string, bencodeElem>
-    /// @return this
-    bencodeDataType& mapInit();
-
-    
-
+    bencodeElem(const bencodeList&);
+    bencodeElem(const bencodeDict&);
     void operator= (const bencodeElem&);
     bool operator== (const bencodeElem&) const;
     bool operator!= (const bencodeElem&) const;
@@ -55,11 +40,11 @@ public:
 
 class parser {
 private:
-static constexpr size_t chunkSize = 4096;
+static constexpr int readingChunkSize = 4096;
 std::filesystem::path openedFilePath;
 mutable std::ifstream input;
 bool readingChecks() const;
-bool readChunk(std::array<char, chunkSize> &);
+bool readChunk(std::array<char, readingChunkSize> &);
 friend class parserTests;
 bencodeKeySymbols getKeyFromChar(const char &param);
 public:
@@ -93,4 +78,36 @@ inline std::string parser::bencodeToType<std::string>(const std::string_view & p
 {
     return std::string(param);
 }
+template <>
+inline bencodeDict parser::bencodeToType<bencodeDict>(const std::string_view & param)
+{
+    return bencodeDict();
+}
+template <>
+inline bencodeList parser::bencodeToType<bencodeList>(const std::string_view & param)
+{
+    return bencodeList();
+}
 
+struct info
+{
+    long int pieceLength;
+    std::string pieces;
+    std::string name;
+    std::map<long int, std::filesystem::path> files;
+};
+class torrentFile {
+    protected:
+        std::string passkey;
+        unsigned int amountOfUrls;
+        std::filesystem::path filePath;
+    public:
+        virtual ~torrentFile() = 0;
+        std::filesystem::path getFilePath() const;
+        virtual info* getInfo() const = 0;
+        virtual std::vector<std::string> getAnnounce() const = 0;
+        virtual std::string getComment() const = 0;
+        virtual std::string createdBy() const = 0;
+        virtual std::time_t creationDate() const = 0;
+    };
+    

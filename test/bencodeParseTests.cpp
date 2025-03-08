@@ -43,7 +43,7 @@ public:
     bool FillFakeSequence()
     { 
         bencodeElem benchmark;
-        benchmark.mapInit();
+        benchmark = bencodeElem(bencodeDict());
         std::get<std::map<std::string, bencodeElem>>(benchmark.data)["property1"] = bencodeElem(228);
         std::get<std::map<std::string, bencodeElem>>(benchmark.data)["listtest"] = bencodeElem(std::vector<bencodeElem> {
             std::string("test"),
