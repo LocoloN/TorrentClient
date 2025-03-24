@@ -130,6 +130,7 @@ bencodeKeySymbols parser::getKeyFromChar(const char &param)
     }
     throw std::runtime_error("wrong char error");
 }
+
 template<typename T>
 bencodeKeySymbols getKeyFromType();
 template<>

@@ -40,20 +40,19 @@ public:
 
 class parser {
 private:
-static constexpr int readingChunkSize = 4096;
-std::filesystem::path openedFilePath;
-mutable std::ifstream input;
-bool readingChecks() const;
-bool readChunk(std::array<char, readingChunkSize> &);
-friend class parserTests;
-bencodeKeySymbols getKeyFromChar(const char &param);
+    static constexpr int readingChunkSize = 4096;
+    std::filesystem::path openedFilePath;
+    mutable std::ifstream input;
+    bool readingChecks() const;
+    bool readChunk(std::array<char, readingChunkSize> &);
+    friend class parserTests;
+    bencodeKeySymbols getKeyFromChar(const char &param);
 public:
     parser();
     parser(const std::filesystem::path filePath);
     parser(const parser &parser);
     void runFileChecks() const;
     bool openFile(const std::filesystem::path &);
-    std::shared_ptr<bencodeElem> parseToTree();
     static bencodeKeySymbols getStoredTypeAsKey(const bencodeElem& param);
     /// @brief converts string to T
     /// @tparam supports int and std::string
@@ -89,25 +88,27 @@ inline bencodeList parser::bencodeToType<bencodeList>(const std::string_view & p
     return bencodeList();
 }
 
-struct info
+class info
 {
-    long int pieceLength;
-    std::string pieces;
-    std::string name;
-    std::map<long int, std::filesystem::path> files;
+public:
+    virtual long unsigned int getPieceLength() const = 0;
+    virtual void getPieces() const = 0;
+    virtual std::string getName() const = 0;
+    virtual std::map<long int, std::filesystem::path> getFiles() const = 0;
 };
+
 class torrentFile {
-    protected:
-        std::string passkey;
-        unsigned int amountOfUrls;
-        std::filesystem::path filePath;
-    public:
-        virtual ~torrentFile() = 0;
-        std::filesystem::path getFilePath() const;
-        virtual info* getInfo() const = 0;
-        virtual std::vector<std::string> getAnnounce() const = 0;
-        virtual std::string getComment() const = 0;
-        virtual std::string createdBy() const = 0;
-        virtual std::time_t creationDate() const = 0;
-    };
+protected:
+    std::string passkey;
+    unsigned int amountOfUrls;
+    std::filesystem::path filePath;
+public:
+    virtual ~torrentFile() = 0;
+    std::filesystem::path getFilePath() const;
+    virtual std::shared_ptr<info> getInfo() const = 0;
+    virtual std::vector<std::string> getAnnounce() const = 0;
+    virtual std::string getComment() const = 0;
+    virtual std::string createdBy() const = 0;
+    virtual std::time_t creationDate() const = 0;
+};
     

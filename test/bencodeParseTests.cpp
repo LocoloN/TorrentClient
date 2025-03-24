@@ -40,20 +40,6 @@ public:
         
         return result;
     }
-    bool FillFakeSequence()
-    { 
-        bencodeElem benchmark;
-        benchmark = bencodeElem(bencodeDict());
-        std::get<std::map<std::string, bencodeElem>>(benchmark.data)["property1"] = bencodeElem(228);
-        std::get<std::map<std::string, bencodeElem>>(benchmark.data)["listtest"] = bencodeElem(std::vector<bencodeElem> {
-            std::string("test"),
-            (int)1337
-        });
-
-        testObj.openFile(fakeTorrentpath);
-        testObj.parseToTree();
-        return (*(testObj.parseToTree().get()) == benchmark);
-    }
     inline bencodeKeySymbols getKeyFromCharTest(const char & param)
     {
         return testObj.getKeyFromChar(param);
