@@ -39,20 +39,11 @@ public:
 };
 
 class parser {
-private:
-    static constexpr int readingChunkSize = 4096;
-    std::filesystem::path openedFilePath;
-    mutable std::ifstream input;
-    bool readingChecks() const;
-    bool readChunk(std::array<char, readingChunkSize> &);
-    friend class parserTests;
-    bencodeKeySymbols getKeyFromChar(const char &param);
+protected:
+    static constexpr int chunkSize = 4096;
+    std::filesystem::path usedFilePath;
 public:
-    parser();
-    parser(const std::filesystem::path filePath);
-    parser(const parser &parser);
-    void runFileChecks() const;
-    bool openFile(const std::filesystem::path &);
+    virtual bool openFile(const std::filesystem::path &) = 0;
     static bencodeKeySymbols getStoredTypeAsKey(const bencodeElem& param);
     /// @brief converts string to T
     /// @tparam supports int and std::string
@@ -62,7 +53,27 @@ public:
     /// @return int or std::string
     template <typename T>
     static T bencodeToType(const std::string_view &param);
+    static bencodeKeySymbols getKeyFromChar(const char &param);
     void operator= (const parser& param);
+};
+
+class iparser : virtual public parser {
+private:
+    mutable std::ifstream input;
+    bool readingChecks() const;
+    bool readChunk(std::array<char, chunkSize> &);
+    friend class iparserTests;
+public:
+    iparser();
+    iparser(const std::filesystem::path filePath);
+    iparser(const parser &parser);
+    void runFileChecks() const;
+    bool openFile(const std::filesystem::path &);
+    void operator= (const iparser& param);
+
+};
+class oparser : virtual public parser {
+
 };
 template <>
 inline int parser::bencodeToType<int>(const std::string_view & param)

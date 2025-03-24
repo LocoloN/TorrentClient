@@ -8,13 +8,13 @@ const std::filesystem::path wrongFormatpath = "../test/testfiles/wrongformat.tor
 const std::filesystem::path fakeTorrentpath = "../test/testfiles/fake.torrent";
 bencodeElem *fakeSequence;
 
-class parserTests
+class iparserTests
 {
 public:
-    parser testObj;
+    iparser testObj;
     inline void initialiseTestObj()
     {
-        testObj = parser();
+        testObj = iparser();
     }
     
     bool isOpenOrGood()
@@ -46,7 +46,7 @@ public:
     }
 };
 
-parserTests helper;
+iparserTests helper;
 
 TEST_CASE("Parser openfile isGoodOrOpen", "[parser][openfile][member]")
 {
@@ -68,10 +68,10 @@ TEST_CASE("Get key from bencodeElem variant", "[parser][nonMember]")
 {
     helper.initialiseTestObj();
     auto param = bencodeElem(static_cast<int>(123));
-    REQUIRE(parser::getStoredTypeAsKey(bencodeElem(static_cast<int>(123))) == bencodeKeySymbols::intstart);
-    REQUIRE(parser::getStoredTypeAsKey(bencodeElem(std::string("test"))) == bencodeKeySymbols::stringstart);
-    REQUIRE(parser::getStoredTypeAsKey(bencodeElem(std::vector<bencodeElem>())) == bencodeKeySymbols::liststart);
-    REQUIRE(parser::getStoredTypeAsKey(bencodeElem(std::map<std::string, bencodeElem>())) == bencodeKeySymbols::mapstart);
+    REQUIRE(iparser::getStoredTypeAsKey(bencodeElem(static_cast<int>(123))) == bencodeKeySymbols::intstart);
+    REQUIRE(iparser::getStoredTypeAsKey(bencodeElem(std::string("test"))) == bencodeKeySymbols::stringstart);
+    REQUIRE(iparser::getStoredTypeAsKey(bencodeElem(std::vector<bencodeElem>())) == bencodeKeySymbols::liststart);
+    REQUIRE(iparser::getStoredTypeAsKey(bencodeElem(std::map<std::string, bencodeElem>())) == bencodeKeySymbols::mapstart);
 }
 TEST_CASE("Get key from char test","[parser][nonMember]")
 {
@@ -97,5 +97,5 @@ TEST_CASE("Parse to element test","[parser][member]")
     int temp = parser::bencodeToType<int>("i243819e");
     REQUIRE(temp == 243819);
     
-    REQUIRE(std::string("testcasebiba").compare(parser::bencodeToType<std::string>("12:testcasebiba")) == 0);
+    REQUIRE(std::string("testcasebiba").compare(iparser::bencodeToType<std::string>("12:testcasebiba")) == 0);
 }
