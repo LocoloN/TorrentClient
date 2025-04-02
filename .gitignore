@@ -31,5 +31,8 @@
 *.out
 *.app
 
+# Torrent files used for testing
+Ultrakill.torrent
+
 # folders
 build/**

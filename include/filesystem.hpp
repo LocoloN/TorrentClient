@@ -4,8 +4,7 @@
 class projFilesystem 
 {
     std::vector<std::filesystem::path> programFolders  =
-    {
-        "torrents",
+    {   "torrents",
         "temp"
     };
     

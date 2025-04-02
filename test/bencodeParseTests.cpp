@@ -3,9 +3,12 @@
 #include <iostream>
 #include <map>
 #include <variant>
+
+using namespace std;
 const std::filesystem::path txtpath = "../test/testfiles/testfile.txt";
 const std::filesystem::path wrongFormatpath = "../test/testfiles/wrongformat.torrent";
 const std::filesystem::path fakeTorrentpath = "../test/testfiles/fake.torrent";
+const std::filesystem::path realTorrentpath = "..\\test\\testfiles\\Ultrakill.torrent";
 bencodeElem *fakeSequence;
 
 class iparserTests
@@ -15,55 +18,49 @@ public:
     inline void initialiseTestObj()
     {
         testObj = iparser();
+    }    
+    bool TorrentFileChecksTest(const std::filesystem::path &torrentPath) {        
+        testObj.openFile(torrentPath);
+        testObj.runFileChecks();
+        if (!testObj.input.good()) {
+            throw runtime_error(torrentPath.string() += string(" ifstream error, iostate = ") += to_string(testObj.input.rdstate()));
+        }
+        if (!testObj.readingChecks()) {
+            throw runtime_error(torrentPath.string() += string(" readingChecks() error, iostate = ") += to_string(testObj.input.rdstate()));
+        }
+        return true;
     }
-    
-    bool isOpenOrGood()
-    {
-        testObj.openFile(txtpath);
-        bool result = false;
-        result = testObj.input.is_open();
-        result = (result || testObj.input.good());
-        return result;
-    }
-    bool isErrorOnNonTorrentExtension()
-    {
-        bool result = false;
-        result = !testObj.openFile(txtpath);
-        
-        return result;
-    }
-    //checks if .torrent dont start with 'd'
-    bool isErrorOnIncorrecTorrentFile()
-    {
-        bool result = false;
-        result = !testObj.openFile(wrongFormatpath);
-        
-        return result;
+    bool fakeTorrentCanBeRead(const std::filesystem::path &torrentPath) {
+        testObj.openFile(torrentPath);
+        testObj.readingChecks();
     }
     inline bencodeKeySymbols getKeyFromCharTest(const char & param)
     {
         return testObj.getKeyFromChar(param);
     }
+    size_t getPropertyPosTest(const std::string_view &param) {
+        testObj.openFile(realTorrentpath);
+        testObj.runFileChecks();
+        if(testObj.input.eof()){
+            throw runtime_error(testObj.usedFilePath.string() += " EOF error");
+        }
+        if(testObj.input.fail()){
+            throw runtime_error(testObj.usedFilePath.string() += " badbit or failbit error");
+        }
+        
+        return testObj.getPropertyPosition(param);
+    }
 };
 
 iparserTests helper;
 
-TEST_CASE("Parser openfile isGoodOrOpen", "[parser][openfile][member]")
+TEST_CASE("torrent can be opened and read", "[parser][openfile][member]")
 {
     helper.initialiseTestObj();
-    REQUIRE(helper.isOpenOrGood() == true);
-}
-TEST_CASE("Parser openfile torrent format checks" ,"[parser][openfile][member]")
-{
+    CHECK(helper.TorrentFileChecksTest(fakeTorrentpath));
     helper.initialiseTestObj();
-    REQUIRE(helper.isErrorOnNonTorrentExtension() == true);
-    REQUIRE(helper.isErrorOnIncorrecTorrentFile() == true);
+    CHECK(helper.TorrentFileChecksTest(realTorrentpath));
 }
-// TEST_CASE("Parse test on fake torrent", "[parser][openfile][member]")
-// {
-//     helper.initialiseTestObj();
-//     REQUIRE(helper.FillFakeSequence() == true);
-// }
 TEST_CASE("Get key from bencodeElem variant", "[parser][nonMember]")
 {
     helper.initialiseTestObj();
@@ -91,11 +88,12 @@ TEST_CASE("Get key from char test","[parser][nonMember]")
     CHECK(helper.getKeyFromCharTest('8') == bencodeKeySymbols::stringstart);
     CHECK(helper.getKeyFromCharTest('9') == bencodeKeySymbols::stringstart);
 }
-
-TEST_CASE("Parse to element test","[parser][member]")
+TEST_CASE("Get property position test","[parser][member]")
 {
-    int temp = parser::bencodeToType<int>("i243819e");
-    REQUIRE(temp == 243819);
-    
-    REQUIRE(std::string("testcasebiba").compare(iparser::bencodeToType<std::string>("12:testcasebiba")) == 0);
+    helper.initialiseTestObj();
+    CHECK(helper.getPropertyPosTest("announce") == 2);
+    CHECK(helper.getPropertyPosTest("announce-list") == 38);
+    CHECK(helper.getPropertyPosTest("comment") == 120);
+    CHECK(helper.getPropertyPosTest("info") == 245);
+    CHECK(helper.getPropertyPosTest("length") == 1337);
 }

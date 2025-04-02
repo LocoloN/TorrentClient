@@ -1,8 +1,9 @@
-#include "../include/torrentFileInfo.hpp"
+#include "lazyTorrentFile.hpp"
 #include "../include/bencodeparse.hpp"
 #include <filesystem>
 #include <ctime>
 #include <exception>
+
 
 /// @brief NOT IMPLEMENTED
 /// @param func 
