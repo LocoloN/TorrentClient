@@ -11,6 +11,14 @@ const std::filesystem::path fakeTorrentpath = "../test/testfiles/fake.torrent";
 const std::filesystem::path realTorrentpath = "..\\test\\testfiles\\Ultrakill.torrent";
 bencodeElem *fakeSequence;
 
+class parserTests {
+    parserTests() {
+
+    }
+    streampos getPropertyPosTest() {
+
+    }
+};
 class iparserTests
 {
 public:
@@ -18,7 +26,7 @@ public:
     inline void initialiseTestObj()
     {
         testObj = iparser();
-    }    
+    }   
     bool TorrentFileChecksTest(const std::filesystem::path &torrentPath) {        
         testObj.openFile(torrentPath);
         testObj.runFileChecks();
@@ -38,7 +46,7 @@ public:
     {
         return testObj.getKeyFromChar(param);
     }
-    size_t getPropertyPosTest(const std::string_view &param) {
+    streampos getPropertyPosTest(const std::string_view &param) {
         testObj.openFile(realTorrentpath);
         testObj.runFileChecks();
         if(testObj.input.eof()){

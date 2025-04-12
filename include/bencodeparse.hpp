@@ -47,6 +47,7 @@ protected:
 public:
     virtual ~parser() = default;
     virtual bool openFile(const std::filesystem::path &) = 0;
+    std::streampos getPropertyPosition(const std::string_view &param);
     static bencodeKeySymbols getStoredTypeAsKey(const bencodeElem& param);
     /// @brief converts string to T
     /// @tparam supports int and std::string
@@ -61,15 +62,14 @@ public:
 class iparser : virtual public parser {
 private:
     mutable std::ifstream input;
+    friend class iparserTests;
     bool readingChecks() const;
     std::array<char, chunkSize> readChunk();
-    friend class iparserTests;
 public:
     iparser();
     iparser(const std::filesystem::path &filePath);
     iparser(const parser &parser);
     ~iparser() override;
-    size_t getPropertyPosition(const std::string_view &param);
     static bencodeElem deserialize(const std::string_view &param);
     std::shared_ptr<torrentFile> getLazyTorrent();
     void runFileChecks() const;

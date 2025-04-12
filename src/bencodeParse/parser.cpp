@@ -6,6 +6,7 @@
 #include <charconv>
 #include <string>
 #include <bits/algorithmfwd.h>
+#include <iosfwd>
 
 using namespace std;
 iparser::iparser()
@@ -120,45 +121,15 @@ bencodeKeySymbols parser::getKeyFromChar(const char &param)
 /// @param param string_view that represents one of bencode types 
 /// @return bencodeElem
 bencodeElem iparser::deserialize(const std::string_view &param) {
-
+    
 }
 /// @brief used to retrieve property position from opened bencode format file
 /// @param param property name
 /// @exception runtime_error when reading error could not find the property
 /// @return index of first character of property in file - 8:announce will return index of character '8'
 /// @return 
-uint64_t iparser::getPropertyPosition(const std::string_view &param) {
-    if (!readingChecks()) {
-        throw std::runtime_error(usedFilePath.string() += " reading error");
-    }
-
-    std::string buffer;
-    std::string fullProperty = std::to_string(param.length()) += ':';
-    fullProperty += std::string(param);
-    uint64_t fullPropertySize = fullProperty.length();
-
-    std::vector<char> arr(fullPropertySize * 2);
-    uint64_t position = static_cast<uint64_t>(-1);
-
-    do {
-        buffer = readChunk().data();
-        position = buffer.find(param);
-
-        if (position != static_cast<uint64_t>(-1)) {
-            return position + (static_cast<uint64_t>(input.tellg()) - chunkSize);
-        }
-
-        input.seekg(-static_cast<int64_t>(fullPropertySize), std::ios::beg); 
-        input.read(arr.data(), fullPropertySize * 2);
-        buffer.assign(arr.data(), fullPropertySize * 2);
-        position = buffer.find(fullProperty);
-        if (position != static_cast<uint64_t>(-1)) {
-            return position + (static_cast<uint64_t>(input.tellg()) - fullPropertySize * 2);
-
-        }
-
-    } while (readingChecks());
-
+streampos parser::getPropertyPosition(const std::string_view &param) {
+    
     throw std::runtime_error("Property not found");
 }
 
