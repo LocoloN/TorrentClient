@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include "bencodeparse.hpp"
 #include <iostream>
+#include <string>
 #include <map>
 #include <variant>
 
@@ -11,14 +12,6 @@ const std::filesystem::path fakeTorrentpath = "../test/testfiles/fake.torrent";
 const std::filesystem::path realTorrentpath = "..\\test\\testfiles\\Ultrakill.torrent";
 bencodeElem *fakeSequence;
 
-class parserTests {
-    parserTests() {
-
-    }
-    streampos getPropertyPosTest() {
-
-    }
-};
 class iparserTests
 {
 public:
@@ -44,9 +37,9 @@ public:
     }
     inline bencodeKeySymbols getKeyFromCharTest(const char & param)
     {
-        return testObj.getKeyFromChar(param);
+        return getKeyFromChar(param);
     }
-    streampos getPropertyPosTest(const std::string_view &param) {
+    bool getPropertyPosTest(const std::string &param) {
         testObj.openFile(realTorrentpath);
         testObj.runFileChecks();
         if(testObj.input.eof()){
@@ -55,8 +48,18 @@ public:
         if(testObj.input.fail()){
             throw runtime_error(testObj.usedFilePath.string() += " badbit or failbit error");
         }
-        
-        return testObj.getPropertyPosition(param);
+        size_t pos = testObj.getPropertyPosition(param);
+        testObj.input.seekg(pos);
+        std::vector<char> result(param.size() + 5);
+        testObj.input.read(result.data(), param.size());
+
+        if(param == std::string(result.begin(), (result.begin() + param.size()))) return true;
+        if(pos == -1) throw runtime_error(string("cant find property ") += param + string(" result is -1"));
+
+        throw runtime_error("property position error, in file " + testObj.usedFilePath.string() +  
+            string(" at position ") + to_string(pos) + string(" expected ") + param + " got " + string(result.data()));
+            
+        return false; 
     }
 };
 
@@ -73,10 +76,10 @@ TEST_CASE("Get key from bencodeElem variant", "[parser][nonMember]")
 {
     helper.initialiseTestObj();
     auto param = bencodeElem(static_cast<int>(123));
-    REQUIRE(iparser::getStoredTypeAsKey(bencodeElem(static_cast<int>(123))) == bencodeKeySymbols::intstart);
-    REQUIRE(iparser::getStoredTypeAsKey(bencodeElem(std::string("test"))) == bencodeKeySymbols::stringstart);
-    REQUIRE(iparser::getStoredTypeAsKey(bencodeElem(std::vector<bencodeElem>())) == bencodeKeySymbols::liststart);
-    REQUIRE(iparser::getStoredTypeAsKey(bencodeElem(std::map<std::string, bencodeElem>())) == bencodeKeySymbols::mapstart);
+    REQUIRE((bencodeElem(static_cast<int>(123))).getStoredTypeAsKey() == bencodeKeySymbols::intstart);
+    REQUIRE((bencodeElem(std::string("test"))).getStoredTypeAsKey() == bencodeKeySymbols::stringstart);
+    REQUIRE((bencodeElem(std::vector<bencodeElem>())).getStoredTypeAsKey() == bencodeKeySymbols::liststart);
+    REQUIRE((bencodeElem(std::map<std::string, bencodeElem>())).getStoredTypeAsKey() == bencodeKeySymbols::mapstart);
 }
 TEST_CASE("Get key from char test","[parser][nonMember]")
 {
@@ -99,9 +102,10 @@ TEST_CASE("Get key from char test","[parser][nonMember]")
 TEST_CASE("Get property position test","[parser][member]")
 {
     helper.initialiseTestObj();
-    CHECK(helper.getPropertyPosTest("announce") == 2);
-    CHECK(helper.getPropertyPosTest("announce-list") == 38);
-    CHECK(helper.getPropertyPosTest("comment") == 120);
-    CHECK(helper.getPropertyPosTest("info") == 245);
-    CHECK(helper.getPropertyPosTest("length") == 1337);
+    CHECK(helper.getPropertyPosTest("publisher-url"));
+    CHECK(helper.getPropertyPosTest("beebo"));
+    CHECK(helper.getPropertyPosTest("beebo2"));
+    CHECK(helper.getPropertyPosTest("Textures20:marble-tile-warm"));
+    CHECK(helper.getPropertyPosTest("created by"));
+    CHECK(helper.getPropertyPosTest("/ann13:announce-listll23:http://"));
 }

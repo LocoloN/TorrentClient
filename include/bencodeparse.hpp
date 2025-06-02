@@ -27,15 +27,21 @@ enum bencodeKeySymbols
 template <typename Map>
 bool compareMaps (Map const &lhs, Map const &rhs);
 
+
+class bencodeElem;
 class bencodeElem { 
 public:
-    bencodeDataType data;
+    std::unique_ptr<bencodeDataType> data;
     bencodeElem();
+    bencodeElem(const bencodeElem &arg);
+    bencodeElem(bencodeElem &&arg);
     bencodeElem(const std::string&);
     bencodeElem(const int& );
     bencodeElem(const bencodeList&);
     bencodeElem(const bencodeDict&);
+    bencodeKeySymbols getStoredTypeAsKey() const;
     void operator= (const bencodeElem&);
+    void operator= (bencodeElem &&);
     bool operator== (const bencodeElem&) const;
     bool operator!= (const bencodeElem&) const;
 };
@@ -47,8 +53,7 @@ protected:
 public:
     virtual ~parser() = default;
     virtual bool openFile(const std::filesystem::path &) = 0;
-    std::streampos getPropertyPosition(const std::string_view &param);
-    static bencodeKeySymbols getStoredTypeAsKey(const bencodeElem& param);
+    virtual inline bool is_open() const = 0;
     /// @brief converts string to T
     /// @tparam supports int and std::string
     /// @param param to convert from.
@@ -57,29 +62,49 @@ public:
     /// @return int or std::string
     // template <typename T>
     // static T bencodeToType(const std::string_view &param);
-    static bencodeKeySymbols getKeyFromChar(const char &param);
 };
 class iparser : virtual public parser {
 private:
     mutable std::ifstream input;
     friend class iparserTests;
-    bool readingChecks() const;
-    std::array<char, chunkSize> readChunk();
+    /// @brief Checks for errors during reading
+    /// @return true if file is ready for reading, no errors happened and not eof
+    inline bool readingChecks() const
+    {
+        return input.good() && !input.eof();
+    }
+    /// @brief reads data size of chunkSize
+    std::unique_ptr<char[]> readChunk() const;
 public:
     iparser();
     iparser(const std::filesystem::path &filePath);
     iparser(const parser &parser);
     ~iparser() override;
-    static bencodeElem deserialize(const std::string_view &param);
+    /// @brief used to construct bencodeElem from string
+    /// @param param string_view that represents one of bencode types 
+    /// @return bencodeElem
     std::shared_ptr<torrentFile> getLazyTorrent();
+    /// @brief used to retrieve property position from opened bencode format file
+    /// @param param property name
+    /// @exception runtime_error when reading error could not find the property
+    /// @return index of first character of property in file - 8:announce will return index of character '8'
+    /// @return 
+    std::streampos getPropertyPosition(const std::string_view &param) const;
+    /// @brief checks opened file for .torrent extension and if it is suited for reading
+    /// @exception runtime_error if not a .torrent file, file too big, file is not open
+    /// @return true if everything is ok
     void runFileChecks() const;
+    inline bool is_open() const {
+        return input.is_open();
+    }  
     bool openFile(const std::filesystem::path &);
     void operator= (const iparser& param);
-
 };
 class oparser : virtual public parser {
-
+    
 };
+bencodeKeySymbols getKeyFromChar(const char &param);
+bencodeElem deserialize(const std::string_view &param);
 // template <>
 // inline int parser::bencodeToType<int>(const std::string_view & param)
 // {

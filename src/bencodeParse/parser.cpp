@@ -5,6 +5,7 @@
 #include <cctype> 
 #include <charconv>
 #include <string>
+#include <iterator>
 #include <bits/algorithmfwd.h>
 #include <iosfwd>
 
@@ -34,7 +35,7 @@ bool iparser::openFile(const std::filesystem::path &path)
 {
     if(input.is_open()) input.close();
     input.clear();
-    input.open(path);
+    input.open(path, std::ios_base::binary);
     usedFilePath = path;
     try {
         runFileChecks();
@@ -47,9 +48,6 @@ bool iparser::openFile(const std::filesystem::path &path)
     }        
     return true;
 }
-/// @brief checks opened file for .torrent extencion and if it is suited for read
-/// @exception runtime_error if not a .torrent file, file too big, file is not open
-/// @return true if everything is ok
 void iparser::runFileChecks() const
 {
     if(!filesystem::exists(usedFilePath)){
@@ -75,17 +73,9 @@ void iparser::runFileChecks() const
         throw std::runtime_error(errorMsg);
     }
 }
-/// @brief Checks for errors during reading
-/// @return true if file is ready for reading, no errors happened and not eof
-inline bool iparser::readingChecks() const
-{
-    return (input.good() && !input.fail() && !input.bad() && !input.eof());
-}
-/// @brief reads data size of chunkSize
-/// @return false if end of file
-std::array<char, parser::chunkSize> iparser::readChunk() {
-    std::array<char, chunkSize> chunk = std::array<char, chunkSize>();
-    input.read(chunk.data(), chunkSize);
+unique_ptr<char[]> iparser::readChunk() const {
+    unique_ptr<char[]> chunk = make_unique<char[]>(chunkSize);
+    input.read(chunk.get(), chunkSize);
     return chunk;
 }
 std::shared_ptr<torrentFile> iparser::getLazyTorrent()
@@ -93,46 +83,73 @@ std::shared_ptr<torrentFile> iparser::getLazyTorrent()
 
     //return std::shared_ptr<torrentFile>(new lazyTorrentFile()); 
 }
+streampos iparser::getPropertyPosition(const std::string_view &param) const {
+    if(param.empty()) return streampos(-1);
+    if(param.size() > chunkSize) throw runtime_error(string("search parameter cant be longer than ") + to_string(chunkSize));
+    if(!input.is_open()) throw runtime_error("getPropertyPosition error, " + usedFilePath.string() += " is not open");
+    int totalSize = param.size() + chunkSize;
+    struct streamState {
+        ifstream &stream;
+        streampos initialPos;
+        ios_base::iostate initialFlag;
 
+        streamState(ifstream &_input)
+          : stream(_input),
+            initialPos(_input.tellg()),
+            initialFlag(_input.rdstate()) { }
+        ~streamState() {
+            stream.clear();
+            stream.seekg(initialPos);
+            stream.setstate(initialFlag);
+        }
+    } streamSaver(input);
+    input.seekg(0, ios::beg);
+    input.clear();
 
-bencodeKeySymbols parser::getKeyFromChar(const char &param)
-{
-    switch (param)
+    unique_ptr<char[]> chunk = make_unique<char[]>(totalSize);
+    std::fill_n(chunk.get(), param.size(),'0');
+    char* begin;
+    char* end;
+    char* posIter;
+    unique_ptr<char[]> overlapBuffer = make_unique<char[]>(param.size());
+    //data that you get when reading a chunkSize of bytes from file
+    std::unique_ptr<char[]> data;
+
+    data = readChunk();
+    while(readingChecks())
     {
-    case 'i':
-        return bencodeKeySymbols::intstart;
-    break;
-    case 'l':
-        return bencodeKeySymbols::liststart;
-    break;
-    case 'd':
-        return bencodeKeySymbols::mapstart;
-    break;
-    case 'e':
-        return bencodeKeySymbols::end;
-    break;
-    default:
-        if(isdigit(param)) return stringstart;
-    break;
-    }
-    throw std::runtime_error("wrong char error");
-}
-/// @brief used to construct bencodeElem
-/// @param param string_view that represents one of bencode types 
-/// @return bencodeElem
-bencodeElem iparser::deserialize(const std::string_view &param) {
-    
-}
-/// @brief used to retrieve property position from opened bencode format file
-/// @param param property name
-/// @exception runtime_error when reading error could not find the property
-/// @return index of first character of property in file - 8:announce will return index of character '8'
-/// @return 
-streampos parser::getPropertyPosition(const std::string_view &param) {
-    
-    throw std::runtime_error("Property not found");
-}
+        copy(data.get(), (data.get() + input.gcount()), (chunk.get() + param.size()));
+        
+        begin = chunk.get();
+        end = begin + param.size() + input.gcount();
+        
+        posIter = std::search(begin, end,param.begin(), param.end());
+        if(posIter != end) {
+            return (input.tellg() - input.gcount() - static_cast<streamoff>(param.size())) + (posIter - begin);
+        }
+        
+        copy(end - param.size(), end, overlapBuffer.get());
+        copy(overlapBuffer.get(), overlapBuffer.get() + param.size(), chunk.get());
 
+        data = readChunk();
+    }
+    if(input.gcount() > 0)
+    {
+        input.clear();
+
+        begin = chunk.get();
+        end = begin + param.size() + input.gcount();
+
+        copy(data.get(), (data.get() + input.gcount()), (chunk.get() + param.size()));
+        copy(overlapBuffer.get(), overlapBuffer.get() + param.size(), chunk.get());
+
+        posIter = std::search(begin, end,param.begin(), param.end());
+        if(posIter != end) {
+            return (input.tellg() - input.gcount() - static_cast<streamoff>(param.size())) + (posIter - begin);
+        }
+    }
+    return streampos(-1);
+}
 template<typename T>
 bencodeKeySymbols getKeyFromType();
 template<>
@@ -154,12 +171,39 @@ bencodeKeySymbols getKeyFromType<std::map<std::string, bencodeElem>>(){
 /// @brief returns bencodeKeySymbols value from one of bencodeDataType variant stored types
 /// @param param used to get bencodeKeySymbol
 /// @return bencodeKeySymbol from param
-bencodeKeySymbols parser::getStoredTypeAsKey(const bencodeElem& param){
+bencodeKeySymbols bencodeElem::getStoredTypeAsKey() const {
     return std::visit([](auto &&arg) -> bencodeKeySymbols {
         return getKeyFromType<std::decay_t<decltype(arg)>>();
-    }, param.data);
+    }, *this->data);
 }
 void iparser::operator= (const iparser& param)  {
     this->usedFilePath = param.usedFilePath;
     this->input = std::ifstream(usedFilePath);
+}
+bencodeElem deserialize(const std::string_view &param) {
+
+    throw runtime_error("not yet implemented");
+    return bencodeElem(1);
+}
+bencodeKeySymbols getKeyFromChar(const char &param)
+{
+    switch (param)
+    {
+    case 'i':
+        return bencodeKeySymbols::intstart;
+    break;
+    case 'l':
+        return bencodeKeySymbols::liststart;
+    break;
+    case 'd':
+        return bencodeKeySymbols::mapstart;
+    break;
+    case 'e':
+        return bencodeKeySymbols::end;
+    break;
+    default:
+        if(isdigit(param)) return stringstart;
+    break;
+    }
+    throw std::runtime_error("wrong char error");
 }
