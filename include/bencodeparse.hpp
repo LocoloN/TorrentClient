@@ -13,20 +13,24 @@
 
 class bencodeElem;
 using bencodeList = std::vector<bencodeElem>;
+/// @brief keys should be ordered lexicographicaly
 using bencodeDict = std::map<std::string, bencodeElem>;
 using bencodeDataType = std::variant<std::string, int, bencodeList, bencodeDict>;
+/// @brief stringstart = 0, intstart = 1, liststart = 2, mapstart = 3, end = 4
 enum bencodeKeySymbols
 {
     stringstart = 0, // <length of string>:<string itself>
     intstart = 1, // i<integer>e
     liststart = 2, // l<other bencode types>e
-    mapstart = 3, // d<bencode string><other bencode types>e
+    mapstart = 3, // d<bencode string><other bencode types>e keys should be ordered lexicographicaly
     end = 4  
 };
 
 template <typename Map>
-bool compareMaps (Map const &lhs, Map const &rhs);
-
+bool compareMaps (Map const &lhs, Map const &rhs)
+{
+    return lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
+}
 
 class bencodeElem;
 class bencodeElem { 
@@ -39,12 +43,24 @@ public:
     bencodeElem(const int& );
     bencodeElem(const bencodeList&);
     bencodeElem(const bencodeDict&);
+    ~bencodeElem() = default;
+    /// @brief returns bencodeKeySymbols value from one of bencodeDataType variant stored types
+    /// @param param used to get bencodeKeySymbol
+    /// @return bencodeKeySymbol from param
     bencodeKeySymbols getStoredTypeAsKey() const;
+    /// @brief serialize elem
+    /// @return string in bencode format
+    std::string serialize() const;
+    /// @brief calculates serialized string length without serializing
+    /// @return length of serialized string
+    size_t calculateStringSize() const;
     void operator= (const bencodeElem&);
     void operator= (bencodeElem &&);
     bool operator== (const bencodeElem&) const;
     bool operator!= (const bencodeElem&) const;
 };
+    std::string serialize_to_bencode(const std::string_view &param);
+    std::string serialize_to_bencode(const int &param);
 
 class parser {
 protected:
@@ -54,14 +70,6 @@ public:
     virtual ~parser() = default;
     virtual bool openFile(const std::filesystem::path &) = 0;
     virtual inline bool is_open() const = 0;
-    /// @brief converts string to T
-    /// @tparam supports int and std::string
-    /// @param param to convert from.
-    /// if int - "i<integer>e" 
-    ///if string - "<length>:<string of giver length>"
-    /// @return int or std::string
-    // template <typename T>
-    // static T bencodeToType(const std::string_view &param);
 };
 class iparser : virtual public parser {
 private:
@@ -104,7 +112,8 @@ class oparser : virtual public parser {
     
 };
 bencodeKeySymbols getKeyFromChar(const char &param);
-bencodeElem deserialize(const std::string_view &param);
+std::string serialize_to_bencode(const std::string_view &param);
+std::string serialize_to_bencode(const int &param); 
 // template <>
 // inline int parser::bencodeToType<int>(const std::string_view & param)
 // {

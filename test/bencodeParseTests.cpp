@@ -63,6 +63,24 @@ public:
     }
 };
 
+bool serialize_test(const bencodeElem &elem, string comp)
+{
+    string result = elem.serialize();
+    if(result != comp) throw runtime_error("Wrong serialisation result, expected " + comp + " got " + result);
+    return result == comp;
+    return false;
+}
+
+bool calculateStringSize_test(const bencodeElem elem, size_t comp)
+{
+    size_t result(elem.calculateStringSize());
+    REQUIRE(result == comp);
+    if(result != comp)
+    {
+        throw runtime_error(string("calculateStringSize error, expected ") += to_string(comp) += string(" got ") += to_string(result));
+    }
+    return true;
+}
 iparserTests helper;
 
 TEST_CASE("torrent can be opened and read", "[parser][openfile][member]")
@@ -108,4 +126,43 @@ TEST_CASE("Get property position test","[parser][member]")
     CHECK(helper.getPropertyPosTest("Textures20:marble-tile-warm"));
     CHECK(helper.getPropertyPosTest("created by"));
     CHECK(helper.getPropertyPosTest("/ann13:announce-listll23:http://"));
+}
+TEST_CASE("Serialize test","[bencodeElem][bencodeElemMember]")
+{
+    CHECK(serialize_test(bencodeElem("boba"), string("4:boba")));
+    CHECK(serialize_test(bencodeElem(123), string("i123e")));
+    CHECK(serialize_test(bencodeElem(112323), string("i112323e")));
+    CHECK(serialize_test(bencodeElem(0), string("i0e")));
+    CHECK(serialize_test(bencodeElem(
+        bencodeDict
+    {
+        {string("announce"), bencodeElem("babaika")},
+        {string("info"), bencodeList {bencodeElem(1337), bencodeElem("chepuha")}},
+        {string("test"), bencodeElem(123)}
+    }),
+        string("d") +
+        string("8:announce7:babaika") + 
+        string("4:infoli1337e7:chepuhae") +
+        string("4:testi123e") +
+        string("e")));
+    CHECK(serialize_test(bencodeElem(bencodeList{
+        bencodeElem(123),
+        bencodeElem("test_string"),
+        bencodeElem(bencodeDict{{string("aboba"), bencodeElem(123)},{string("shershavchik"), bencodeElem("chto?")}})}),
+        string("li123e11:test_stringd5:abobai123e12:shershavchik5:chto?ee")));
+}
+TEST_CASE("calculateStringSize test","[bencodeElem][bencodeElemMember]") 
+{
+    bencodeDict dict = bencodeDict {
+        {string("announce"), bencodeElem("babaika")},
+        {string("info"), bencodeList {bencodeElem(1337), bencodeElem("chepuha")}},
+        {string("test"), bencodeElem(123)}
+    };
+    CHECK(calculateStringSize_test(bencodeElem(123), 5));
+    CHECK(calculateStringSize_test(bencodeElem("boba"), 6));
+    CHECK(calculateStringSize_test(bencodeElem(dict), 55));
+    CHECK(calculateStringSize_test(bencodeElem(bencodeList{
+        bencodeElem(123),
+        bencodeElem("test_string"),
+        bencodeElem(bencodeDict{{string("aboba"), bencodeElem(123)},{string("shershavchik"), bencodeElem("chto?")}})}), 57));
 }

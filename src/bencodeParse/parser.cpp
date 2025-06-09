@@ -150,40 +150,12 @@ streampos iparser::getPropertyPosition(const std::string_view &param) const {
     }
     return streampos(-1);
 }
-template<typename T>
-bencodeKeySymbols getKeyFromType();
-template<>
-bencodeKeySymbols getKeyFromType<std::string>(){
-    return bencodeKeySymbols::stringstart;
-}
-template<>
-bencodeKeySymbols getKeyFromType<int>(){
-    return bencodeKeySymbols::intstart;
-}
-template<>
-bencodeKeySymbols getKeyFromType<std::vector<bencodeElem>>(){
-    return bencodeKeySymbols::liststart;
-}
-template<>
-bencodeKeySymbols getKeyFromType<std::map<std::string, bencodeElem>>(){
-    return bencodeKeySymbols::mapstart;
-}
-/// @brief returns bencodeKeySymbols value from one of bencodeDataType variant stored types
-/// @param param used to get bencodeKeySymbol
-/// @return bencodeKeySymbol from param
-bencodeKeySymbols bencodeElem::getStoredTypeAsKey() const {
-    return std::visit([](auto &&arg) -> bencodeKeySymbols {
-        return getKeyFromType<std::decay_t<decltype(arg)>>();
-    }, *this->data);
-}
 void iparser::operator= (const iparser& param)  {
     this->usedFilePath = param.usedFilePath;
     this->input = std::ifstream(usedFilePath);
 }
 bencodeElem deserialize(const std::string_view &param) {
 
-    throw runtime_error("not yet implemented");
-    return bencodeElem(1);
 }
 bencodeKeySymbols getKeyFromChar(const char &param)
 {
@@ -205,5 +177,5 @@ bencodeKeySymbols getKeyFromChar(const char &param)
         if(isdigit(param)) return stringstart;
     break;
     }
-    throw std::runtime_error("wrong char error");
+    throw std::runtime_error("wrong char error ");
 }
