@@ -155,9 +155,21 @@ void iparser::operator= (const iparser& param)  {
     this->input = std::ifstream(usedFilePath);
 }
 bencodeElem deserialize(const std::string_view &param) {
-
+    switch (getKeyFromChar(param[0]))
+    {
+    case bencodeKeySymbols::stringstart : {
+        size_t delimeter {param.find(":")};
+        if(delimeter = std::string::npos) throw runtime_error("bencode deserialization error, wrong string format");
+        std::string len_str {param.substr(0, delimeter)};
+        size_t param_len {stoi(len_str)}; 
+        return bencodeElem(string{param.substr(delimeter + 1, param_len)});
+    }
+    default:
+        break;
+        #warning dodelat
+    }
 }
-bencodeKeySymbols getKeyFromChar(const char &param)
+bencodeKeySymbols getKeyFromChar(char param)
 {
     switch (param)
     {

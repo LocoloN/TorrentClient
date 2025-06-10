@@ -25,13 +25,6 @@ enum bencodeKeySymbols
     mapstart = 3, // d<bencode string><other bencode types>e keys should be ordered lexicographicaly
     end = 4  
 };
-
-template <typename Map>
-bool compareMaps (Map const &lhs, Map const &rhs)
-{
-    return lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
-}
-
 class bencodeElem;
 class bencodeElem { 
 public:
@@ -62,6 +55,7 @@ public:
     std::string serialize_to_bencode(const std::string_view &param);
     std::string serialize_to_bencode(const int &param);
 
+bencodeElem deserialize(const std::string_view &param);
 class parser {
 protected:
     static constexpr int chunkSize = 4096;
@@ -105,13 +99,17 @@ public:
     inline bool is_open() const {
         return input.is_open();
     }  
+    /// @brief sets openedFilePath property and initializes std::ifstream input
+    /// needed for opening file and checking it .torrent format
+    /// @param path path to .torrent file
+    /// @return true if everything is ok
     bool openFile(const std::filesystem::path &);
     void operator= (const iparser& param);
 };
 class oparser : virtual public parser {
     
 };
-bencodeKeySymbols getKeyFromChar(const char &param);
+bencodeKeySymbols getKeyFromChar(char param);
 std::string serialize_to_bencode(const std::string_view &param);
 std::string serialize_to_bencode(const int &param); 
 // template <>

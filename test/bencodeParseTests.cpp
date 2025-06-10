@@ -166,3 +166,11 @@ TEST_CASE("calculateStringSize test","[bencodeElem][bencodeElemMember]")
         bencodeElem("test_string"),
         bencodeElem(bencodeDict{{string("aboba"), bencodeElem(123)},{string("shershavchik"), bencodeElem("chto?")}})}), 57));
 }
+TEST_CASE("Deserialize test","[bencodeElem][bencodeElemMember]") 
+{
+    string i{"i123e"};
+    string str{"11:string_test"};
+    CHECK(deserialize(i) == bencodeElem(123));\
+    CHECK(deserialize(str) == bencodeElem(string{"string_test"}));
+
+}

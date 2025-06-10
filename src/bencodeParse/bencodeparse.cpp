@@ -11,6 +11,12 @@
 
 using namespace std;
 
+template <typename Map>
+bool compareMaps (Map const &lhs, Map const &rhs)
+{
+    return lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
+}
+
 bencodeElem::bencodeElem() : data(make_unique<bencodeDataType>()) { }
 bencodeElem::bencodeElem(const bencodeElem &arg) : data(make_unique<bencodeDataType>(*arg.data)) { }
 bencodeElem::bencodeElem(bencodeElem &&arg) : data(std::move(arg.data)) { }
