@@ -34,6 +34,7 @@ public:
     bool fakeTorrentCanBeRead(const std::filesystem::path &torrentPath) {
         testObj.openFile(torrentPath);
         testObj.readingChecks();
+        return true;
     }
     inline bencodeKeySymbols getKeyFromCharTest(const char & param)
     {
@@ -61,6 +62,7 @@ public:
             
         return false; 
     }
+    
 };
 
 bool serialize_test(const bencodeElem &elem, string comp)
@@ -81,6 +83,74 @@ bool calculateStringSize_test(const bencodeElem elem, size_t comp)
     }
     return true;
 }
+bool deserialize_test(const string_view &param, const bencodeElem &comp) 
+{
+    bencodeElem &&test_elem{deserialize(param)};
+
+    if (test_elem.getStoredTypeAsKey() != comp.getStoredTypeAsKey()) {
+        throw runtime_error{
+            "Type mismatch: expected " + 
+            to_string(comp.getStoredTypeAsKey()) + 
+            " got " + 
+            to_string(test_elem.getStoredTypeAsKey())
+        };
+    }
+
+    switch (test_elem.getStoredTypeAsKey())
+    {
+    case bencodeKeySymbols::stringstart : {
+        auto comp_val = get_if<string>(comp.data.get());
+        auto test_val = get_if<string>(test_elem.data.get());
+        
+        if(!comp_val) throw runtime_error{string{"Deserialisation error: stringstart comp_val is nullptr"}};
+        if(!test_val) throw runtime_error{string{"Deserialisation error: stringstart test_val is nullptr"}};
+
+        if(test_elem != comp) throw runtime_error{string{"wrong deserialization:  expected "} + *comp_val + string{" got "} + *test_val};
+        return true;
+    }
+    case bencodeKeySymbols::intstart : {
+        auto test_val = get_if<int>(test_elem.data.get());
+        auto comp_val = get_if<int>(comp.data.get());
+
+        if(!test_val) throw runtime_error{string{"Deserialisation error: intstart test_val is nullptr"}};
+        if(!comp_val) throw runtime_error{string{"Deserialisation error: intstart comp_val is nullptr"}};
+
+        if(test_elem != comp) throw runtime_error{string{"wrong deserialization:  expected "} + to_string(*comp_val) + string{" got "} + to_string(*test_val)};
+        return true;
+
+    }
+    case bencodeKeySymbols::liststart : {
+        bencodeList &test_elem_ref = get<bencodeList>(*test_elem.data);
+        
+        if(test_elem.getStoredTypeAsKey() != comp.getStoredTypeAsKey()) throw runtime_error{string{"Error in deserialize_test: deserialized stored type is not the same as in comp: expected "} + 
+        to_string(comp.getStoredTypeAsKey()) + string{"got"} + to_string(test_elem.getStoredTypeAsKey())};
+        
+        if(test_elem != comp) throw runtime_error{string{"wrong deserialization: list"}};
+        size_t i = 0;
+        for (auto &&j : get<bencodeList>(*comp.data))
+        {
+            if(test_elem_ref[i] != j) throw runtime_error{string{"wrong deserialization: expected "} + to_string(get<int>(*comp.data)) + string{" got "} + to_string(get<int>(*test_elem.data))};
+            i++;
+        }
+        return true;
+    }
+    case bencodeKeySymbols::mapstart : {
+        bencodeDict &test_elem_ref = get<bencodeDict>(*test_elem.data);
+        for(const auto &ipair : test_elem_ref) {
+            for(const auto &jpair : get<bencodeDict>(*comp.data)) {
+                if(ipair.first != jpair.first) throw runtime_error{string{"wrong deserialization: expected key "} + jpair.first + string{" got "} + ipair.first};
+                if(ipair.second != jpair.second) throw runtime_error{string{"wrong deserialization: expected "} + jpair.second.serialize() + string{" got "} + ipair.second.serialize()};
+            }
+        }
+        return true;
+    }
+    default:
+        return false;   
+    break;
+    }
+    return true;            
+}
+
 iparserTests helper;
 
 TEST_CASE("torrent can be opened and read", "[parser][openfile][member]")
@@ -93,8 +163,7 @@ TEST_CASE("torrent can be opened and read", "[parser][openfile][member]")
 TEST_CASE("Get key from bencodeElem variant", "[parser][nonMember]")
 {
     helper.initialiseTestObj();
-    auto param = bencodeElem(static_cast<int>(123));
-    REQUIRE((bencodeElem(static_cast<int>(123))).getStoredTypeAsKey() == bencodeKeySymbols::intstart);
+    REQUIRE((bencodeElem(int{123})).getStoredTypeAsKey() == bencodeKeySymbols::intstart);
     REQUIRE((bencodeElem(std::string("test"))).getStoredTypeAsKey() == bencodeKeySymbols::stringstart);
     REQUIRE((bencodeElem(std::vector<bencodeElem>())).getStoredTypeAsKey() == bencodeKeySymbols::liststart);
     REQUIRE((bencodeElem(std::map<std::string, bencodeElem>())).getStoredTypeAsKey() == bencodeKeySymbols::mapstart);
@@ -153,6 +222,12 @@ TEST_CASE("Serialize test","[bencodeElem][bencodeElemMember]")
 }
 TEST_CASE("calculateStringSize test","[bencodeElem][bencodeElemMember]") 
 {
+    CHECK(calculateStringSize_test(bencodeElem{bencodeDict{
+        {string{"proverka"}, bencodeElem{1234}}
+    }}, 18));
+    CHECK(calculateStringSize_test(bencodeElem{bencodeList{bencodeDict{
+        {string{"proverka"}, bencodeElem{1234}}
+    }}}, 20));
     bencodeDict dict = bencodeDict {
         {string("announce"), bencodeElem("babaika")},
         {string("info"), bencodeList {bencodeElem(1337), bencodeElem("chepuha")}},
@@ -161,16 +236,32 @@ TEST_CASE("calculateStringSize test","[bencodeElem][bencodeElemMember]")
     CHECK(calculateStringSize_test(bencodeElem(123), 5));
     CHECK(calculateStringSize_test(bencodeElem("boba"), 6));
     CHECK(calculateStringSize_test(bencodeElem(dict), 55));
+    CHECK(calculateStringSize_test(bencodeElem{bencodeList{bencodeElem{123}, bencodeElem{string{"proverka"}}}}, 17));
     CHECK(calculateStringSize_test(bencodeElem(bencodeList{
         bencodeElem(123),
         bencodeElem("test_string"),
         bencodeElem(bencodeDict{{string("aboba"), bencodeElem(123)},{string("shershavchik"), bencodeElem("chto?")}})}), 57));
 }
-TEST_CASE("Deserialize test","[bencodeElem][bencodeElemMember]") 
+TEST_CASE("Deserialize test","[bencodeElem][nonMember]") 
 {
-    string i{"i123e"};
-    string str{"11:string_test"};
-    CHECK(deserialize(i) == bencodeElem(123));\
-    CHECK(deserialize(str) == bencodeElem(string{"string_test"}));
+    CHECK(deserialize_test(string{"i1234e"}, bencodeElem{int{1234}}));
+    CHECK(deserialize_test(string{"8:proverka"}, bencodeElem{string("proverka")}));
 
+    bencodeElem comp{bencodeList{bencodeElem{1234}, bencodeElem{string{"proverka"}}}};
+    CHECK(deserialize_test(string{"li1234e8:proverkae"}, comp));
+
+    CHECK(deserialize_test(string{"li1234el8:proverkai123ee4:jopae"}, bencodeElem{bencodeList {
+        bencodeElem{1234},
+        bencodeElem {bencodeList {
+            bencodeElem{string{"proverka"}}, 
+            bencodeElem{123}
+        }},
+        bencodeElem(string{"jopa"})
+    }}));
+    CHECK(deserialize_test(string{"d8:proverkai1234ee"}, bencodeElem{bencodeDict{{string{"proverka"}, bencodeElem{1234}}}}));
+    CHECK(deserialize_test(string("li123e11:test_stringd5:abobai123e12:shershavchik5:chto?ee"), bencodeElem(bencodeList{
+        bencodeElem(123),
+        bencodeElem("test_string"),
+        bencodeElem(bencodeDict{{string("aboba"), bencodeElem(123)},{string("shershavchik"), bencodeElem("chto?")}})}))
+    );
 }

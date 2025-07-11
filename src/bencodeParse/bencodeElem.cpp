@@ -46,12 +46,18 @@ size_t bencodeElem::calculateStringSize() const {
         }
         case bencodeKeySymbols::mapstart : 
         {
-            bencodeDict &myMap = get<bencodeDict>(*data);
-            size_t resultSize(2);
+            const bencodeDict &myMap = get<bencodeDict>(*data);
+            size_t resultSize{2};
+            size_t current{};
             for (auto const &[key, val] : myMap)
             {
-                resultSize += bencodeElem(key).calculateStringSize();
-                resultSize += val.calculateStringSize();
+                current = bencodeElem(key).calculateStringSize();
+                if(current <= 0) throw runtime_error{string{"calculateStringSize error: key "} + key + string{"length is <= 0"}};
+                resultSize += current;
+                
+                current = val.calculateStringSize();
+                if(current <= 0) throw runtime_error{string{"calculateStringSize error: val "} + val.serialize() + string{"length is <= 0"}};
+                resultSize += current;
             }
             return resultSize;
         }
@@ -110,31 +116,35 @@ void bencodeElem::operator=(bencodeElem && arg) {
 }
 bool bencodeElem::operator!= (const bencodeElem& param) const
 {
-    return !(this->data == param.data);
+    return !(*this == param);
 }
 bool bencodeElem::operator==(const bencodeElem& param) const
 {
-    switch (param.getStoredTypeAsKey())
+    if (getStoredTypeAsKey() != param.getStoredTypeAsKey()) return false;
+
+    switch (getStoredTypeAsKey())
     {
-        case intstart:
-            return std::get<int>(*data) == std::get<int>(*param.data);
-        break;
-        case stringstart:
-            return 0 == std::get<std::string>(*data).compare(std::get<std::string>(*param.data));
-        break;
-        case liststart:
-            return std::get<std::vector<bencodeElem>>(*param.data) == std::get<std::vector<bencodeElem>>(*data);
-        break;
-        case mapstart:        
-            return compareMaps<std::map<std::string, bencodeElem>>(std::get<std::map<std::string, bencodeElem>>(*data), 
-            std::get<std::map<std::string, bencodeElem>>(*param.data));
-        break;
+    case bencodeKeySymbols::stringstart:
+        return *get_if<string>(data.get()) == *get_if<string>(param.data.get());
+    
+    case bencodeKeySymbols::intstart:
+        return *get_if<int>(data.get()) == *get_if<int>(param.data.get());
+    
+    case bencodeKeySymbols::liststart:
+        return *get_if<vector<bencodeElem>>(data.get()) == 
+               *get_if<vector<bencodeElem>>(param.data.get());
+    
+    case bencodeKeySymbols::mapstart:        
+        return compareMaps<bencodeDict>(
+            *get_if<bencodeDict>(data.get()),
+            *get_if<bencodeDict>(param.data.get())
+        );
     
     default:
         return false;
-    break;
     }
 }
+
 std::string serialize_to_bencode(const std::string_view &param) {
      return to_string(param.length()).append(":").append(param);
 }

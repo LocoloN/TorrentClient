@@ -6,9 +6,7 @@ using namespace std;
 int main()
 {
     //iparser obj(filesystem::path("../test/testfiles/Ultrakill.torrent"));
-    iparser obj(filesystem::path("../test/testfiles/fake.torrent"));
-    auto pos = obj.getPropertyPosition("listtest");
-    cout << pos;
-
+    bencodeElem elem{};
+    cout << elem.data->index();
     return 0;
 }

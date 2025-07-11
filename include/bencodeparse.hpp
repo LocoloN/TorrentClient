@@ -33,7 +33,7 @@ public:
     bencodeElem(const bencodeElem &arg);
     bencodeElem(bencodeElem &&arg);
     bencodeElem(const std::string&);
-    bencodeElem(const int& );
+    bencodeElem(const int&);
     bencodeElem(const bencodeList&);
     bencodeElem(const bencodeDict&);
     ~bencodeElem() = default;
@@ -54,8 +54,16 @@ public:
 };
     std::string serialize_to_bencode(const std::string_view &param);
     std::string serialize_to_bencode(const int &param);
-
+/// @brief used to recursively turn any type from bencode format string to bencodeElem
+/// @exception runtime_error if cant deserialise
+/// @param param string that starts with one of bencode types
+/// @return bencodeElem
 bencodeElem deserialize(const std::string_view &param);
+/// @brief used to deserialize simple bencode types - int and string
+/// @param param string starting with simple type 
+/// @exception runtime_error on attempt to use this function on bencode container type - list or dict 
+/// @return bencodeElem with int or string type
+bencodeElem deserialize_simple(const std::string_view &param);
 class parser {
 protected:
     static constexpr int chunkSize = 4096;

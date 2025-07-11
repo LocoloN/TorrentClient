@@ -154,22 +154,86 @@ void iparser::operator= (const iparser& param)  {
     this->usedFilePath = param.usedFilePath;
     this->input = std::ifstream(usedFilePath);
 }
+bencodeElem deserialize_simple(const std::string_view &param) {
+    size_t current_indent = 1;
+    switch (getKeyFromChar(param[0]))
+    {
+    case bencodeKeySymbols::stringstart : {
+        
+        size_t delimeter_pos {param.find(':')};
+        if(delimeter_pos == std::string::npos) throw runtime_error(string{"bencode deserialization error: wrong string format on argument "} + string{param});
+        std::string len_str {param.substr(0, delimeter_pos)};
+        size_t param_len {stoi(len_str)}; 
+        string raw_prop{param.substr(delimeter_pos + 1, param_len)};
+        if(param_len != raw_prop.length()) throw runtime_error("bencode deserialization error: wrong string format");
+        return bencodeElem(raw_prop);
+    }
+    case bencodeKeySymbols::intstart : {
+        if(param[0] != 'i') throw runtime_error("bencode deserialization error, wrong int format");
+        size_t end_pos {param.find("e")};
+        int result {stoi(string{param.substr(1,end_pos - 1)})}; // i _ _ _ e
+        return bencodeElem{result};
+    }
+    case bencodeKeySymbols::liststart : {
+        throw runtime_error{string{"error on attempt to use deserialize_simple on bencode container type - list"}};
+        break;
+    }
+    case bencodeKeySymbols::mapstart : {
+        throw runtime_error{string{"error on attempt to use deserialize_simple on bencode container type - dictionary"}};
+        break;
+    }
+    }
+}
+
 bencodeElem deserialize(const std::string_view &param) {
     switch (getKeyFromChar(param[0]))
     {
     case bencodeKeySymbols::stringstart : {
-        size_t delimeter {param.find(":")};
-        if(delimeter = std::string::npos) throw runtime_error("bencode deserialization error, wrong string format");
-        std::string len_str {param.substr(0, delimeter)};
-        size_t param_len {stoi(len_str)}; 
-        return bencodeElem(string{param.substr(delimeter + 1, param_len)});
+        return deserialize_simple(param);
+    }
+    case bencodeKeySymbols::intstart : {
+        return deserialize_simple(param);
+    }
+    case bencodeKeySymbols::liststart : {
+        size_t current_indent = 1;
+        if(param[0] != 'l') throw runtime_error("bencode deserialization error, wrong list format");
+        bencodeElem result(bencodeList{});
+        bencodeList &ref = get<bencodeList>(*result.data);
+        
+        while (param[current_indent] != 'e' && current_indent <= param.length()) {
+            ref.push_back(deserialize(param.substr(current_indent)));
+
+            current_indent += ref.back().calculateStringSize();
+        };
+        return result;
+    }
+    case bencodeKeySymbols::mapstart : {
+        size_t current_indent = 1;
+        bencodeElem result(bencodeDict{});
+        bencodeDict &ref = get<bencodeDict>(*result.data);
+        string key{""};
+        pair<string, bencodeElem> my_pair{};
+        do
+        {
+            if (getKeyFromChar(param[current_indent]) != bencodeKeySymbols::stringstart) throw runtime_error("wrong bencode dictionary format: no string key");
+            bencodeElem &&key_elem = deserialize(param.substr(current_indent));
+            key = get<string>(*key_elem.data);
+            current_indent += key_elem.calculateStringSize();
+            my_pair.first = key;
+
+            bencodeElem &&value_elem = deserialize(param.substr(current_indent));
+            my_pair.second = value_elem;
+            current_indent += value_elem.calculateStringSize();
+            ref.insert(my_pair);
+        } while (getKeyFromChar(param[current_indent]) != bencodeKeySymbols::end);
+        return result;
     }
     default:
-        break;
-        #warning dodelat
+        throw runtime_error(string{"wrong bencode format: misplaced symbol "} + param[0]);
+    break;
     }
 }
-bencodeKeySymbols getKeyFromChar(char param)
+inline bencodeKeySymbols getKeyFromChar(char param)
 {
     switch (param)
     {
@@ -186,8 +250,7 @@ bencodeKeySymbols getKeyFromChar(char param)
         return bencodeKeySymbols::end;
     break;
     default:
-        if(isdigit(param)) return stringstart;
-    break;
+        if(isdigit(static_cast<unsigned char>(param))) return bencodeKeySymbols::stringstart;
     }
-    throw std::runtime_error("wrong char error ");
+    throw std::runtime_error(string{"getKeyFromChar error: unknown character '"} + param + "'");
 }
