@@ -2,6 +2,8 @@
 #include "filesystem.hpp"
 
 using namespace std;
+using namespace TorrentClient;
+
 class projFilesystemTests {
     projFilesystem testObj;
 public:

@@ -1,11 +1,13 @@
 #include <catch2/catch_test_macros.hpp>
-#include "bencodeparse.hpp"
 #include <iostream>
 #include <string>
 #include <map>
 #include <variant>
+#include "bencodeparse.hpp"
 
 using namespace std;
+using namespace TorrentClient;
+
 const std::filesystem::path txtpath = "../test/testfiles/testfile.txt";
 const std::filesystem::path wrongFormatpath = "../test/testfiles/wrongformat.torrent";
 const std::filesystem::path fakeTorrentpath = "../test/testfiles/fake.torrent";

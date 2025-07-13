@@ -4,6 +4,7 @@
 #include <ctime>
 #include <exception>
 
+using namespace TorrentClient;
 
 /// @brief NOT IMPLEMENTED
 /// @param func 

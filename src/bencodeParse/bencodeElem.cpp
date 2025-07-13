@@ -10,6 +10,7 @@
 #include <cmath>
 
 using namespace std;
+using namespace TorrentClient;
 
 template <typename Map>
 bool compareMaps (Map const &lhs, Map const &rhs)
@@ -145,10 +146,10 @@ bool bencodeElem::operator==(const bencodeElem& param) const
     }
 }
 
-std::string serialize_to_bencode(const std::string_view &param) {
+std::string TorrentClient::serialize_to_bencode(const std::string_view &param) {
      return to_string(param.length()).append(":").append(param);
 }
-std::string serialize_to_bencode(const int &param) {
+std::string TorrentClient::serialize_to_bencode(const int &param) {
     return string("i") + to_string(param) + "e";
 }
 template<typename T>

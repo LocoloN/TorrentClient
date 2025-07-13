@@ -1,7 +1,9 @@
 #include "filesystem.hpp"
 #include <filesystem>
 #include <exception>
+
 using namespace std;
+using namespace TorrentClient;
 
 projFilesystem::projFilesystem() {
 int x = 0;

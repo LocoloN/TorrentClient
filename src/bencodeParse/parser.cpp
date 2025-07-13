@@ -10,6 +10,8 @@
 #include <iosfwd>
 
 using namespace std;
+using namespace TorrentClient;
+
 iparser::iparser()
 {
     usedFilePath = "";
@@ -154,7 +156,7 @@ void iparser::operator= (const iparser& param)  {
     this->usedFilePath = param.usedFilePath;
     this->input = std::ifstream(usedFilePath);
 }
-bencodeElem deserialize_simple(const std::string_view &param) {
+bencodeElem TorrentClient::deserialize_simple(const std::string_view &param) {
     size_t current_indent = 1;
     switch (getKeyFromChar(param[0]))
     {
@@ -184,8 +186,7 @@ bencodeElem deserialize_simple(const std::string_view &param) {
     }
     }
 }
-
-bencodeElem deserialize(const std::string_view &param) {
+bencodeElem TorrentClient::deserialize(const std::string_view &param) {
     switch (getKeyFromChar(param[0]))
     {
     case bencodeKeySymbols::stringstart : {
@@ -233,7 +234,7 @@ bencodeElem deserialize(const std::string_view &param) {
     break;
     }
 }
-inline bencodeKeySymbols getKeyFromChar(char param)
+inline bencodeKeySymbols TorrentClient::getKeyFromChar(char param)
 {
     switch (param)
     {
