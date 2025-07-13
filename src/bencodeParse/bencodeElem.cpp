@@ -66,6 +66,8 @@ size_t bencodeElem::calculateStringSize() const {
             return size_t(-1);
         break;
     }
+    return size_t(-1);
+
 }
 std::string bencodeElem::serialize() const
 {

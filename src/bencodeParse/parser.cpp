@@ -165,7 +165,7 @@ bencodeElem TorrentClient::deserialize_simple(const std::string_view &param) {
         size_t delimeter_pos {param.find(':')};
         if(delimeter_pos == std::string::npos) throw runtime_error(string{"bencode deserialization error: wrong string format on argument "} + string{param});
         std::string len_str {param.substr(0, delimeter_pos)};
-        size_t param_len {stoi(len_str)}; 
+        size_t param_len {stoull(len_str)}; 
         string raw_prop{param.substr(delimeter_pos + 1, param_len)};
         if(param_len != raw_prop.length()) throw runtime_error("bencode deserialization error: wrong string format");
         return bencodeElem(raw_prop);
@@ -184,7 +184,9 @@ bencodeElem TorrentClient::deserialize_simple(const std::string_view &param) {
         throw runtime_error{string{"error on attempt to use deserialize_simple on bencode container type - dictionary"}};
         break;
     }
-    }
+    default :
+    return bencodeElem{};
+    } 
 }
 bencodeElem TorrentClient::deserialize(const std::string_view &param) {
     switch (getKeyFromChar(param[0]))
