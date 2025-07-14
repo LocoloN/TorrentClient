@@ -1,4 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+#include <filesystem>
 #include <iostream>
 #include <string>
 #include <map>
@@ -8,21 +10,26 @@
 using namespace std;
 using namespace TorrentClient;
 
-const std::filesystem::path txtpath = "../test/testfiles/testfile.txt";
-const std::filesystem::path wrongFormatpath = "../test/testfiles/wrongformat.torrent";
-const std::filesystem::path fakeTorrentpath = "../test/testfiles/fake.torrent";
-const std::filesystem::path realTorrentpath = "..\\test\\testfiles\\Ultrakill.torrent";
+
 bencodeElem *fakeSequence;
 
 class iparserTests
 {
 public:
     iparser testObj;
-    inline void initialiseTestObj()
+    
+    iparserTests() : testObj()
     {
-        testObj = iparser();
-    }   
+
+    }
+
+    const std::filesystem::path txtpath = "../test/testfiles/testfile.txt";
+    const std::filesystem::path wrongFormatpath = "../test/testfiles/wrongformat.torrent";
+    const std::filesystem::path fakeTorrentpath = "../test/testfiles/fake.torrent";
+    const std::filesystem::path realTorrentpath = "..\\test\\testfiles\\Ultrakill.torrent";
+
     bool TorrentFileChecksTest(const std::filesystem::path &torrentPath) {        
+        INFO("testing torrent file: " + torrentPath.string());
         testObj.openFile(torrentPath);
         testObj.runFileChecks();
         if (!testObj.input.good()) {
@@ -74,7 +81,6 @@ bool serialize_test(const bencodeElem &elem, string comp)
     return result == comp;
     return false;
 }
-
 bool calculateStringSize_test(const bencodeElem elem, size_t comp)
 {
     size_t result(elem.calculateStringSize());
@@ -155,48 +161,45 @@ bool deserialize_test(const string_view &param, const bencodeElem &comp)
 
 iparserTests helper;
 
-TEST_CASE("torrent can be opened and read", "[parser][openfile][member]")
-{
-    helper.initialiseTestObj();
-    CHECK(helper.TorrentFileChecksTest(fakeTorrentpath));
-    helper.initialiseTestObj();
-    CHECK(helper.TorrentFileChecksTest(realTorrentpath));
+TEST_CASE_METHOD(iparserTests,"torrent can be opened and read", "[parser][openfile][member]"){
+    REQUIRE(TorrentFileChecksTest(realTorrentpath));
+    REQUIRE(TorrentFileChecksTest(fakeTorrentpath));
 }
-TEST_CASE("Get key from bencodeElem variant", "[parser][nonMember]")
+
+TEST_CASE( "Get key from bencodeElem variant", "[parser][nonMember]")
 {
-    helper.initialiseTestObj();
     REQUIRE((bencodeElem(int{123})).getStoredTypeAsKey() == bencodeKeySymbols::intstart);
     REQUIRE((bencodeElem(std::string("test"))).getStoredTypeAsKey() == bencodeKeySymbols::stringstart);
     REQUIRE((bencodeElem(std::vector<bencodeElem>())).getStoredTypeAsKey() == bencodeKeySymbols::liststart);
     REQUIRE((bencodeElem(std::map<std::string, bencodeElem>())).getStoredTypeAsKey() == bencodeKeySymbols::mapstart);
 }
-TEST_CASE("Get key from char test","[parser][nonMember]")
+TEST_CASE_METHOD(iparserTests,"Get key from char test","[parser][nonMember]")
 {
-    helper.initialiseTestObj();
-    REQUIRE(helper.getKeyFromCharTest('i') == bencodeKeySymbols::intstart);
-    REQUIRE(helper.getKeyFromCharTest('l') == bencodeKeySymbols::liststart);
-    REQUIRE(helper.getKeyFromCharTest('d') == bencodeKeySymbols::mapstart);
-    REQUIRE(helper.getKeyFromCharTest('e') == bencodeKeySymbols::end);
-    CHECK(helper.getKeyFromCharTest('0') == bencodeKeySymbols::stringstart);
-    CHECK(helper.getKeyFromCharTest('1') == bencodeKeySymbols::stringstart);
-    CHECK(helper.getKeyFromCharTest('2') == bencodeKeySymbols::stringstart);
-    CHECK(helper.getKeyFromCharTest('3') == bencodeKeySymbols::stringstart);
-    CHECK(helper.getKeyFromCharTest('4') == bencodeKeySymbols::stringstart);
-    CHECK(helper.getKeyFromCharTest('5') == bencodeKeySymbols::stringstart);
-    CHECK(helper.getKeyFromCharTest('6') == bencodeKeySymbols::stringstart);
-    CHECK(helper.getKeyFromCharTest('7') == bencodeKeySymbols::stringstart);
-    CHECK(helper.getKeyFromCharTest('8') == bencodeKeySymbols::stringstart);
-    CHECK(helper.getKeyFromCharTest('9') == bencodeKeySymbols::stringstart);
+    REQUIRE(getKeyFromCharTest('i') == bencodeKeySymbols::intstart);
+    REQUIRE(getKeyFromCharTest('l') == bencodeKeySymbols::liststart);
+    REQUIRE(getKeyFromCharTest('d') == bencodeKeySymbols::mapstart);
+    REQUIRE(getKeyFromCharTest('e') == bencodeKeySymbols::end);
+    CHECK(getKeyFromCharTest('0') == bencodeKeySymbols::stringstart);
+    CHECK(getKeyFromCharTest('1') == bencodeKeySymbols::stringstart);
+    CHECK(getKeyFromCharTest('2') == bencodeKeySymbols::stringstart);
+    CHECK(getKeyFromCharTest('3') == bencodeKeySymbols::stringstart);
+    CHECK(getKeyFromCharTest('4') == bencodeKeySymbols::stringstart);
+    CHECK(getKeyFromCharTest('5') == bencodeKeySymbols::stringstart);
+    CHECK(getKeyFromCharTest('6') == bencodeKeySymbols::stringstart);
+    CHECK(getKeyFromCharTest('7') == bencodeKeySymbols::stringstart);
+    CHECK(getKeyFromCharTest('8') == bencodeKeySymbols::stringstart);
+    CHECK(getKeyFromCharTest('9') == bencodeKeySymbols::stringstart);
 }
-TEST_CASE("Get property position test","[parser][member]")
+TEST_CASE_METHOD(iparserTests,"Get property position test","[parser][member]")
 {
-    helper.initialiseTestObj();
-    CHECK(helper.getPropertyPosTest("publisher-url"));
-    CHECK(helper.getPropertyPosTest("beebo"));
-    CHECK(helper.getPropertyPosTest("beebo2"));
-    CHECK(helper.getPropertyPosTest("Textures20:marble-tile-warm"));
-    CHECK(helper.getPropertyPosTest("created by"));
-    CHECK(helper.getPropertyPosTest("/ann13:announce-listll23:http://"));
+    auto vals = GENERATE("publisher-url",
+        "beebo",
+        "beebo2",
+        "Textures20:marble-tile-warm",
+        "created by",
+        "/ann13:announce-listll23:http://"
+        );
+    CHECK(getPropertyPosTest(vals));
 }
 TEST_CASE("Serialize test","[bencodeElem][bencodeElemMember]")
 {
