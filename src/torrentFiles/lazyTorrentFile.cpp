@@ -8,10 +8,7 @@ using namespace TorrentClient;
 
 /// @brief NOT IMPLEMENTED
 /// @param func 
-lazyTorrentFile::lazyTorrentFile(bencodeElem(*func)()) {
-    throw std::runtime_error("not implemented");
-    translateFunction = func;
-}
+lazyTorrentFile::lazyTorrentFile() {}
 lazyTorrentFile::~lazyTorrentFile() = default;
 std::vector<std::string> lazyTorrentFile::getAnnounce() const {
     throw std::runtime_error("not implemented");

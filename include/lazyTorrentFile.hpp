@@ -29,21 +29,14 @@ namespace TorrentClient {
     class lazyTorrentFile : public torrentFile {
     protected:  
         size_t infoPosition;
-        size_t announcePosition;
-        size_t commentPosition;
-        size_t createdByPosition;
-        size_t creationDatePosition;
-        std::shared_ptr<info> refInfo;
-        //translates bencode to type
-        bencodeElem (*translateFunction)(void);
     public:
-        lazyTorrentFile(bencodeElem (*func)(void));
+        lazyTorrentFile();
         ~lazyTorrentFile();
-        std::shared_ptr<info> getInfo() const;
-        std::vector<std::string> getAnnounce() const;
-        std::string getComment() const;
-        std::string createdBy() const;
-        std::time_t creationDate() const;
+        std::shared_ptr<info> getInfo() const override;
+        std::vector<std::string> getAnnounce() const override;
+        std::string getComment() const override;
+        std::string createdBy() const override;
+        std::time_t creationDate() const override;
 
     };
 }

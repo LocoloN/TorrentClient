@@ -58,8 +58,9 @@ public:
         if(testObj.input.fail()){
             throw runtime_error(testObj.usedFilePath.string() += " badbit or failbit error");
         }
-        size_t pos = testObj.getPropertyPosition(param);
-        testObj.input.seekg(pos);
+        auto pos = testObj.getPropertyPosition(param);
+        if(!pos.has_value()) throw runtime_error(string{"could not find property "} + param + string{" in file "} + testObj.usedFilePath.string());
+        testObj.input.seekg(pos.value());
         std::vector<char> result(param.size() + 5);
         testObj.input.read(result.data(), param.size());
 
@@ -67,7 +68,7 @@ public:
         if(pos == -1) throw runtime_error(string("cant find property ") += param + string(" result is -1"));
 
         throw runtime_error("property position error, in file " + testObj.usedFilePath.string() +  
-            string(" at position ") + to_string(pos) + string(" expected ") + param + " got " + string(result.data()));
+            string(" at position ") + to_string(pos.value()) + string(" expected ") + param + " got " + string(result.data()));
             
         return false; 
     }

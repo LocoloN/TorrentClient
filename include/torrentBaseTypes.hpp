@@ -22,6 +22,7 @@ namespace TorrentClient {
         std::string passkey;
         unsigned int amountOfUrls;
         std::filesystem::path filePath;
+    private:
     public:
         virtual ~torrentFile() = 0;
         std::filesystem::path getFilePath() const;

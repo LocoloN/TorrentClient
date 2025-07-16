@@ -74,10 +74,10 @@ std::string bencodeElem::serialize() const
     switch (data->index())
     {
     case bencodeKeySymbols::intstart : 
-        return serialize_to_bencode(get<int>(*data));
+        return TorrentClient::serialize(get<int>(*data));
     break;
     case bencodeKeySymbols::stringstart : {
-        return serialize_to_bencode(get<string>(*data));
+        return TorrentClient::serialize(get<string>(*data));
     }
     case bencodeKeySymbols::liststart : {
         bencodeList &blist = get<bencodeList>(*data);
@@ -99,7 +99,7 @@ std::string bencodeElem::serialize() const
         result.append("d");
         for (auto const&[key, val] : dict)
         {
-            result.append(serialize_to_bencode(key));
+            result.append(TorrentClient::serialize(key));
             result.append(val.serialize());
         }
         result.append("e");         
@@ -148,10 +148,10 @@ bool bencodeElem::operator==(const bencodeElem& param) const
     }
 }
 
-std::string TorrentClient::serialize_to_bencode(const std::string_view &param) {
+std::string TorrentClient::serialize(const std::string_view &param) {
      return to_string(param.length()).append(":").append(param);
 }
-std::string TorrentClient::serialize_to_bencode(const int &param) {
+std::string TorrentClient::serialize(const int &param) {
     return string("i") + to_string(param) + "e";
 }
 template<typename T>

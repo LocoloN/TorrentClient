@@ -7,10 +7,31 @@
 #include <string>
 #include <iterator>
 #include <bits/algorithmfwd.h>
+#include "../src/bencodeParse/parser_aux.cpp"
 #include <iosfwd>
 
 using namespace std;
 using namespace TorrentClient;
+
+struct streamState {
+    ifstream &stream;
+    streampos initialPos;
+    ios_base::iostate initialFlag;
+    bool canceled{false};
+
+    streamState(ifstream &_input)
+        : stream(_input),
+        initialPos(_input.tellg()),
+        initialFlag(_input.rdstate()) { }
+    ~streamState() {
+        if(canceled) return;
+        stream.clear();
+        stream.seekg(initialPos);
+        stream.setstate(initialFlag);
+        
+    }
+    inline void switch_state() noexcept {canceled = (canceled)? false : true;}
+};
 
 iparser::iparser()
 {
@@ -33,7 +54,7 @@ iparser::~iparser() {
 /// needed for opening file and checking it .torrent format
 /// @param path path to .torrent file
 /// @return true if everything is ok
-bool iparser::openFile(const std::filesystem::path &path)
+bool iparser::openFile(const std::filesystem::path &path) noexcept
 {
     if(input.is_open()) input.close();
     input.clear();
@@ -75,7 +96,7 @@ void iparser::runFileChecks() const
         throw std::runtime_error(errorMsg);
     }
 }
-unique_ptr<char[]> iparser::readChunk() const {
+unique_ptr<char[]> iparser::readChunk() const noexcept{
     unique_ptr<char[]> chunk = make_unique<char[]>(chunkSize);
     input.read(chunk.get(), chunkSize);
     return chunk;
@@ -85,28 +106,15 @@ std::shared_ptr<torrentFile> iparser::getLazyTorrent()
 
     //return std::shared_ptr<torrentFile>(new lazyTorrentFile()); 
 }
-streampos iparser::getPropertyPosition(const std::string_view &param) const {
-    if(param.empty()) return streampos(-1);
+std::optional<streampos> iparser::getPropertyPosition(string param) const {
+    if(param.empty()) return nullopt;
     if(param.size() > chunkSize) throw runtime_error(string("search parameter cant be longer than ") + to_string(chunkSize));
     if(!input.is_open()) throw runtime_error("getPropertyPosition error, " + usedFilePath.string() += " is not open");
-    int totalSize = param.size() + chunkSize;
-    struct streamState {
-        ifstream &stream;
-        streampos initialPos;
-        ios_base::iostate initialFlag;
 
-        streamState(ifstream &_input)
-          : stream(_input),
-            initialPos(_input.tellg()),
-            initialFlag(_input.rdstate()) { }
-        ~streamState() {
-            stream.clear();
-            stream.seekg(initialPos);
-            stream.setstate(initialFlag);
-        }
-    } streamSaver(input);
+    unsigned int totalSize = param.size() + chunkSize;
     input.seekg(0, ios::beg);
     input.clear();
+    streamState state_save{input};
 
     unique_ptr<char[]> chunk = make_unique<char[]>(totalSize);
     std::fill_n(chunk.get(), param.size(),'0');
@@ -127,7 +135,9 @@ streampos iparser::getPropertyPosition(const std::string_view &param) const {
         
         posIter = std::search(begin, end,param.begin(), param.end());
         if(posIter != end) {
-            return (input.tellg() - input.gcount() - static_cast<streamoff>(param.size())) + (posIter - begin);
+            state_save.switch_state();
+            input.seekg((input.tellg() - input.gcount() - static_cast<streamoff>(param.size())) + (posIter - begin));
+            return input.tellg();
         }
         
         copy(end - param.size(), end, overlapBuffer.get());
@@ -147,31 +157,48 @@ streampos iparser::getPropertyPosition(const std::string_view &param) const {
 
         posIter = std::search(begin, end,param.begin(), param.end());
         if(posIter != end) {
-            return (input.tellg() - input.gcount() - static_cast<streamoff>(param.size())) + (posIter - begin);
+            state_save.switch_state();
+            input.seekg((input.tellg() - input.gcount() - static_cast<streamoff>(param.size())) + (posIter - begin));
+            return input.tellg();
         }
     }
-    return streampos(-1);
+    return nullopt;
 }
-void iparser::operator= (const iparser& param)  {
+void iparser::operator= (const iparser& param) noexcept {
     this->usedFilePath = param.usedFilePath;
     this->input = std::ifstream(usedFilePath);
 }
+
+// std::string iparser::look_up(const std::streampos &from, const std::streampos &to = std::streampos{0}) {
+//     if(!readingChecks()) throw runtime_error(string{"look error in file "} + usedFilePath.string() + string{" file not passed checks"});
+//     if(from == streampos{-1} || to == streampos{-1}) throw runtime_error(string{"look error in file "} + usedFilePath.string() + string{" wrong argument -1"});
+
+//     streamState state_save{input};
+//     input.seekg(from);
+
+//     std::unique_ptr<char []> chunk;
+//     chunk = readChunk();
+//     switch (getKeyFromChar(chunk[0]))
+//     {
+//     case bencodeKeySymbols::stringstart :
+//         process_bencode_string();
+//         break;
+
+//     default:
+//         break;
+//     }
+// }
+
 bencodeElem TorrentClient::deserialize_simple(const std::string_view &param) {
     size_t current_indent = 1;
     switch (getKeyFromChar(param[0]))
     {
     case bencodeKeySymbols::stringstart : {
-        
-        size_t delimeter_pos {param.find(':')};
-        if(delimeter_pos == std::string::npos) throw runtime_error(string{"bencode deserialization error: wrong string format on argument "} + string{param});
-        std::string len_str {param.substr(0, delimeter_pos)};
-        size_t param_len {stoull(len_str)}; 
-        string raw_prop{param.substr(delimeter_pos + 1, param_len)};
-        if(param_len != raw_prop.length()) throw runtime_error("bencode deserialization error: wrong string format");
-        return bencodeElem(raw_prop);
+        return bencodeElem{string{process_bencode_string(param).second}};
     }
     case bencodeKeySymbols::intstart : {
         if(param[0] != 'i') throw runtime_error("bencode deserialization error, wrong int format");
+        if(param[1] == '0') throw runtime_error("bencode deserialization error, invalid int format");
         size_t end_pos {param.find("e")};
         int result {stoi(string{param.substr(1,end_pos - 1)})}; // i _ _ _ e
         return bencodeElem{result};
@@ -188,6 +215,7 @@ bencodeElem TorrentClient::deserialize_simple(const std::string_view &param) {
     return bencodeElem{};
     } 
 }
+
 bencodeElem TorrentClient::deserialize(const std::string_view &param) {
     switch (getKeyFromChar(param[0]))
     {
