@@ -16,7 +16,7 @@ void projFilesystem::init() const  {
     }
 }
 
-bool projFilesystem::checkFoldersIntegrity() const
+bool projFilesystem::check_folders_integrity() const noexcept
 {
     bool result = true;
     for (const auto &item : programFolders)

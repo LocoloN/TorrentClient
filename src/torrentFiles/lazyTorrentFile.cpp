@@ -10,23 +10,23 @@ using namespace TorrentClient;
 /// @param func 
 lazyTorrentFile::lazyTorrentFile() {}
 lazyTorrentFile::~lazyTorrentFile() = default;
-std::vector<std::string> lazyTorrentFile::getAnnounce() const {
+std::vector<std::string> lazyTorrentFile::announce() const {
     throw std::runtime_error("not implemented");
     return std::vector<std::string>();
 }
-std::shared_ptr<info> lazyTorrentFile::getInfo() const {
+std::shared_ptr<info> lazyTorrentFile::info_get() const {
     throw std::runtime_error("not implemented");
     
 }
-std::string lazyTorrentFile::getComment() const {
+std::string lazyTorrentFile::comment() const {
     throw std::runtime_error("not implemented");
     return std::string();
 }
-std::string lazyTorrentFile::createdBy() const {
+std::string lazyTorrentFile::created_by() const {
     throw std::runtime_error("not implemented");
     return std::string();
 }
-std::time_t lazyTorrentFile::creationDate() const {
+std::time_t lazyTorrentFile::creation_date() const {
     throw std::runtime_error("not implemented");
     return std::time_t();
 }

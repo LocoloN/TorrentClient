@@ -15,7 +15,7 @@ namespace TorrentClient {
     public:
         projFilesystem();
         void init() const;
-        bool checkFoldersIntegrity() const;
-        bool checkTorrentPairs() const;
+        bool check_folders_integrity() const noexcept;
+        bool check_torrent_pairs() const noexcept;
     };
 }
