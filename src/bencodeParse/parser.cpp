@@ -38,7 +38,7 @@ iparser::iparser()
     usedFilePath = "";
     input = std::ifstream(); 
 }
-iparser::iparser(const parser &param) {
+iparser::iparser(const iparser &param) {
     *this = param;
 }
 /// @brief constructs iparser and with opened file
@@ -106,7 +106,7 @@ std::shared_ptr<torrentFile> iparser::getLazyTorrent()
 
     //return std::shared_ptr<torrentFile>(new lazyTorrentFile()); 
 }
-std::optional<streampos> iparser::getPropertyPosition(string param) const {
+std::optional<streampos> iparser::getPropertyPosition(const string_view &param) {
     if(param.empty()) return nullopt;
     if(param.size() > chunkSize) throw runtime_error(string("search parameter cant be longer than ") + to_string(chunkSize));
     if(!input.is_open()) throw runtime_error("getPropertyPosition error, " + usedFilePath.string() += " is not open");
@@ -125,7 +125,7 @@ std::optional<streampos> iparser::getPropertyPosition(string param) const {
     //data that you get when reading a chunkSize of bytes from file
     std::unique_ptr<char[]> data;
 
-    data = readChunk();
+    data = move(readChunk());
     while(readingChecks())
     {
         copy(data.get(), (data.get() + input.gcount()), (chunk.get() + param.size()));
@@ -143,7 +143,7 @@ std::optional<streampos> iparser::getPropertyPosition(string param) const {
         copy(end - param.size(), end, overlapBuffer.get());
         copy(overlapBuffer.get(), overlapBuffer.get() + param.size(), chunk.get());
 
-        data = readChunk();
+        data = move(readChunk());
     }
     if(input.gcount() > 0)
     {
@@ -164,31 +164,11 @@ std::optional<streampos> iparser::getPropertyPosition(string param) const {
     }
     return nullopt;
 }
+
 void iparser::operator= (const iparser& param) noexcept {
     this->usedFilePath = param.usedFilePath;
     this->input = std::ifstream(usedFilePath);
 }
-
-// std::string iparser::look_up(const std::streampos &from, const std::streampos &to = std::streampos{0}) {
-//     if(!readingChecks()) throw runtime_error(string{"look error in file "} + usedFilePath.string() + string{" file not passed checks"});
-//     if(from == streampos{-1} || to == streampos{-1}) throw runtime_error(string{"look error in file "} + usedFilePath.string() + string{" wrong argument -1"});
-
-//     streamState state_save{input};
-//     input.seekg(from);
-
-//     std::unique_ptr<char []> chunk;
-//     chunk = readChunk();
-//     switch (getKeyFromChar(chunk[0]))
-//     {
-//     case bencodeKeySymbols::stringstart :
-//         process_bencode_string();
-//         break;
-
-//     default:
-//         break;
-//     }
-// }
-
 bencodeElem TorrentClient::deserialize_simple(const std::string_view &param) {
     size_t current_indent = 1;
     switch (getKeyFromChar(param[0]))
@@ -215,7 +195,6 @@ bencodeElem TorrentClient::deserialize_simple(const std::string_view &param) {
     return bencodeElem{};
     } 
 }
-
 bencodeElem TorrentClient::deserialize(const std::string_view &param) {
     switch (getKeyFromChar(param[0]))
     {

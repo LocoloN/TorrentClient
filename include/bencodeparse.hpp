@@ -99,7 +99,7 @@ namespace TorrentClient {
     public:
         iparser();
         iparser(const std::filesystem::path &filePath);
-        iparser(const parser &parser);
+        iparser(const iparser &parser);
         ~iparser() override;
         /// @brief used to construct bencodeElem from string
         /// @param param string_view that represents one of bencode types 
@@ -110,7 +110,7 @@ namespace TorrentClient {
         /// @exception runtime_error when reading error could not find the property
         /// @return index of first character of property in file - 8:announce will return index of character '8'
         /// @return 
-        std::optional<std::streampos> getPropertyPosition(std::string param) const;
+        std::optional<std::streampos> getPropertyPosition(const std::string_view &param);
         
         /// @brief checks opened file for .torrent extension and if it is suited for reading
         /// @exception runtime_error if not a .torrent file, file too big, file is not open
