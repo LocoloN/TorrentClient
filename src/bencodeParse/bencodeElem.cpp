@@ -4,7 +4,7 @@
 #include <fstream>
 #include <filesystem>
 #include <exception>
-#include "bencodeparse.hpp"
+#include "parser/bencodeparse.hpp"
 #include <memory>
 #include <type_traits>
 #include <cmath>

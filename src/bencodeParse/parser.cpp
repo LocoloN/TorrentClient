@@ -1,6 +1,6 @@
 #include <fstream>
 #include <stack>
-#include <bencodeparse.hpp>
+#include <parser/bencodeparse.hpp>
 #include <algorithm>
 #include <cctype> 
 #include <charconv>
@@ -164,7 +164,6 @@ std::optional<streampos> iparser::getPropertyPosition(const string_view &param) 
     }
     return nullopt;
 }
-
 void iparser::operator= (const iparser& param) noexcept {
     this->usedFilePath = param.usedFilePath;
     this->input = std::ifstream(usedFilePath);

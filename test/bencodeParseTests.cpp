@@ -5,7 +5,7 @@
 #include <string>
 #include <map>
 #include <variant>
-#include "bencodeparse.hpp"
+#include "parser/bencodeparse.hpp"
 
 using namespace std;
 using namespace TorrentClient;

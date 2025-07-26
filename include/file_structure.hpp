@@ -1,19 +1,20 @@
 #include <filesystem>
 #include <vector>
 
-class projFilesystemTests;
+class file_structure_tests;
 
 namespace TorrentClient {
-    class projFilesystem 
+    
+    class file_structure 
     {
         std::vector<std::filesystem::path> programFolders  =
         {   "torrents",
             "temp"
         };
         
-        friend class ::projFilesystemTests;
+        friend class ::file_structure_tests;
     public:
-        projFilesystem();
+        file_structure();
         void init() const;
         bool check_folders_integrity() const noexcept;
         bool check_torrent_pairs() const noexcept;

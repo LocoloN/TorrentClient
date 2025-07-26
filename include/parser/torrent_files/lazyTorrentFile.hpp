@@ -6,8 +6,7 @@
 #include <map>
 #include "lazyTorrentFile.hpp"
 #include <memory>
-#include "torrentBaseTypes.hpp"
-#include "bencodeparse.hpp"
+#include "parser/bencodeparse.hpp"
 
 namespace TorrentClient {
     class bencodeElem;

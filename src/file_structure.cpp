@@ -1,22 +1,18 @@
-#include "filesystem.hpp"
+#include "file_structure.hpp"
 #include <filesystem>
 #include <exception>
 
 using namespace std;
 using namespace TorrentClient;
 
-projFilesystem::projFilesystem() {
-int x = 0;
-}
-
-void projFilesystem::init() const  {
+void file_structure::init() const  {
     for (size_t i = 0; i < programFolders.size(); i++)
     {
         filesystem::create_directory(filesystem::path(programFolders[i]));
     }
 }
 
-bool projFilesystem::check_folders_integrity() const noexcept
+bool file_structure::check_folders_integrity() const noexcept
 {
     bool result = true;
     for (const auto &item : programFolders)

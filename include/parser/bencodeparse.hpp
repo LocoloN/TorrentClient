@@ -9,13 +9,12 @@
 #include <fstream>
 #include <memory>
 #include <charconv>
-#include "lazyTorrentFile.hpp"
-#include "torrentBaseTypes.hpp"
+#include "parser/torrent_files/torrent_file_base.hpp"
+#include "parser/torrent_files/torrent_file_base.hpp"
 
 class iparserTests;
 
 namespace TorrentClient {
-        
     class bencodeElem;
     using bencodeList = std::vector<bencodeElem>;
     /// @brief keys should be ordered lexicographicaly
@@ -30,7 +29,6 @@ namespace TorrentClient {
         mapstart = 3, // d<bencode string><other bencode types>e keys should be ordered lexicographicaly
         end = 4  
     };
-    class bencodeElem;
     class bencodeElem { 
     public:
         std::unique_ptr<bencodeDataType> data;
@@ -130,27 +128,4 @@ namespace TorrentClient {
         
     };
     bencodeKeySymbols getKeyFromChar(char param);
-    // template <>
-    // inline int parser::bencodeToType<int>(const std::string_view & param)
-    // {
-    //     int result = 0;
-    //     std::from_chars_result temp = std::from_chars(&param[0], &param[param.length() - 1], result);
-    //     if(temp.ec == std::errc()) throw std::runtime_error("error on bencodeToType<int>");
-    //     return result;
-    // }
-    // template <>
-    // inline std::string parser::bencodeToType<std::string>(const std::string_view & param)
-    // {
-    //     return std::string(param);
-    // }
-    // template <>
-    // inline bencodeDict parser::bencodeToType<bencodeDict>(const std::string_view & param)
-    // {
-    //     return bencodeDict();
-    // }
-    // template <>
-    // inline bencodeList parser::bencodeToType<bencodeList>(const std::string_view & param)
-    // {
-    //     return bencodeList();
-    // }
 }
