@@ -1,15 +1,52 @@
-#include <parser/readers/data_reader.hpp>
+#include <parser/readers/DataReader.hpp>
+#include <parser/readers/SimpleDataReader.hpp>
+#include <fstream>
 
 using namespace TorrentClient;
 
-class SimpleDataReader : DataReader<>
-{
-protected:
-    std::ifstream input;
-    bool is_good() const override {
-    return input.good();
+bool SimpleDataReader::reading_checks() const noexcept{
+    return input.good() && !input.eof();
 }
-private:
-public:
+bool SimpleDataReader::open_file(const std::filesystem::path &path) noexcept {
+    if(!filesystem::exists(path)) {
+        input.close();
+        input.clear();
+        used_file_path = "";
+        return false;
+    }
+    input.clear();
+    input.open(path, std::ios_base::binary);
+    used_file_path = path;
+     
+    if(!input.is_open()) {
+        input.close();
+        input.clear();
+        used_file_path = "";
+        return false;
+    }        
+    return true;
+}
+bool SimpleDataReader::close() noexcept {
+    input.close();
+    input.clear();
+    used_file_path = "";
+    return true;
+}
+optional<unsigned char> SimpleDataReader::operator[] (const size_t &index) const noexcept {
+    if(!reading_checks()) return nullopt;
+    if(0 > index || index > filesystem::file_size(used_file_path)) return nullopt;
+    input.seekg(index);
+    return input.peek();
+}
 
-};
+optional<vector<unsigned char>> SimpleDataReader::get_block(const size_t offset, size_t size) const noexcept {
+    if(!reading_checks()) return nullopt;
+    if(static_cast<std::streampos>(offset + size) > filesystem::file_size(used_file_path)) return nullopt;
+    optional<vector<unsigned char>> result{};
+    result.value().reserve(filesystem::file_size(used_file_path));
+    input.seekg(offset);
+    input.read(reinterpret_cast<char*>(result.value().data()), size);
+    return result;
+}
+
+
