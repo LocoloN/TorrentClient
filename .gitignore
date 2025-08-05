@@ -37,3 +37,4 @@ Ultrakill.torrent
 # folders
 build/**
 .vscode/** 
+.cache/**
