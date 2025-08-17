@@ -26,25 +26,9 @@ public:
   const std::filesystem::path realTorrentpath =
       "..\\test\\testfiles\\Ultrakill.torrent";
 
-  bool TorrentFileChecksTest(const std::filesystem::path &torrentPath) {
-    INFO("testing torrent file: " + torrentPath.string());
-    testObj.openFile(torrentPath);
-    testObj.runFileChecks();
-    if (!testObj.input.good()) {
-      throw runtime_error(torrentPath.string() +=
-                          string(" ifstream error, iostate = ") +=
-                          to_string(testObj.input.rdstate()));
-    }
-    if (!testObj.readingChecks()) {
-      throw runtime_error(torrentPath.string() +=
-                          string(" readingChecks() error, iostate = ") +=
-                          to_string(testObj.input.rdstate()));
-    }
-    return true;
-  }
   bool fakeTorrentCanBeRead(const std::filesystem::path &torrentPath) {
     testObj.openFile(torrentPath);
-    testObj.readingChecks();
+    testObj.input->is_good();
     return true;
   }
   inline bencodeKeySymbols getKeyFromCharTest(const char &param) {

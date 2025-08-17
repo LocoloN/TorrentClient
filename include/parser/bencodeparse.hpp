@@ -1,14 +1,13 @@
 #pragma once
+#include "parser/torrent_files/torrent_file_base.hpp"
 #include <filesystem>
-#include <fstream>
 #include <map>
 #include <memory>
 #include <optional>
+#include <parser/readers/DataReader.hpp>
 #include <string>
 #include <variant>
 #include <vector>
-
-#include "parser/torrent_files/torrent_file_base.hpp"
 
 class iparserTests;
 
@@ -75,37 +74,29 @@ bencodeElem deserialize(const std::string_view &param);
 /// container type - list or dict
 /// @return bencodeElem with int or string type
 bencodeElem deserialize_simple(const std::string_view &param);
-class parser {
-protected:
-  static constexpr int chunkSize = 4096;
-  std::filesystem::path usedFilePath;
 
-public:
-  virtual ~parser() = default;
-  virtual bool openFile(const std::filesystem::path &) noexcept = 0;
-  [[nodiscard]] virtual inline bool is_open() const = 0;
+enum TorrentFiletype {
+  empty = 0,
+  lazy = 1,
 };
-class iparser : virtual public parser {
+
+class iparser {
 private:
-  mutable std::ifstream input;
   friend class ::iparserTests;
-  /// @brief Checks for errors during reading
-  /// @return true if file is ready for reading, no errors happened and not eof
-  inline bool readingChecks() const noexcept {
-    return input.good() && !input.eof();
-  }
-  /// @brief reads data size of chunkSize
-  std::unique_ptr<char[]> readChunk() const noexcept;
+  static constexpr int chunkSize = 4096;
 
 public:
   iparser();
-  iparser(const std::filesystem::path &filePath);
-  iparser(const iparser &parser);
-  ~iparser() override;
+  iparser(std::unique_ptr<DataReader> reader);
+  iparser(const iparser &parser) = delete;
+  iparser(iparser &&param) noexcept;
+  virtual ~iparser();
+  std::unique_ptr<DataReader> input;
+
   /// @brief used to construct bencodeElem from string
   /// @param param string_view that represents one of bencode types
   /// @return bencodeElem
-  std::shared_ptr<torrentFile> getLazyTorrent();
+  std::shared_ptr<torrentFile> get_torrent(TorrentFiletype file_type);
   /// @brief used to retrieve property position from opened bencode format file
   /// \note sets stream position to returned index
   /// @param param property name
@@ -122,14 +113,19 @@ public:
   /// open
   /// @return true if everything is ok
   void runFileChecks() const;
-  inline bool is_open() const noexcept override { return input.is_open(); }
+  [[nodiscard]] inline bool is_open() const noexcept {
+    return input->is_open();
+  }
   /// @brief sets openedFilePath property and initializes std::ifstream input
   /// needed for opening file and checking it .torrent format
   /// @param path path to .torrent file
   /// @return true if everything is ok
-  bool openFile(const std::filesystem::path &) noexcept override;
-  iparser &operator=(const iparser &param) noexcept;
+  bool openFile(const std::filesystem::path &) noexcept;
+  iparser &operator=(const iparser &param) noexcept = delete;
+  iparser &operator=(iparser &&param) noexcept;
 };
-class oparser : virtual public parser {};
+
+class oparser;
+
 bencodeKeySymbols getKeyFromChar(char param);
 } // namespace TorrentClient

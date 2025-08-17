@@ -1,32 +1,37 @@
 #pragma once
 
-#include <parser/readers/DataReader.hpp>
 #include <fstream>
+#include <parser/readers/DataReader.hpp>
 
 using namespace std;
 using namespace TorrentClient;
 
 class SimpleDataReader_tests;
-//class SimpleDataReader;
+// class SimpleDataReader;
 
 namespace TorrentClient {
+class SimpleDataReader : virtual public DataReader {
+protected:
+  mutable ifstream input; // NOLINT
+  friend class ::SimpleDataReader_tests;
 
-    class SimpleDataReader : virtual public DataReader {
-    protected:
-        mutable ifstream input;
-        inline bool reading_checks() const noexcept;
-        bool is_good() const override;
-        friend class SimpleDataReader_tests;
-    private:
-    public:
-        SimpleDataReader() = default;
-        virtual ~SimpleDataReader() = default;
-        bool is_open() const noexcept override{ 
-            return input.is_open(); 
-        } 
-        bool open_file(const std::filesystem::path &path) noexcept override;
-        void close_file() noexcept override;
-        optional<unsigned char> operator[] (const std::size_t &index) const noexcept; 
-        optional<vector<unsigned char>> get_block(size_t offset, size_t size) const noexcept; 
-    }; 
-}
+private:
+public:
+  SimpleDataReader() = default;
+  ~SimpleDataReader() override = default;
+  SimpleDataReader(const SimpleDataReader &param) noexcept = delete;
+  SimpleDataReader(SimpleDataReader &&param) noexcept;
+  SimpleDataReader &operator=(const SimpleDataReader &param) noexcept = delete;
+  SimpleDataReader &operator=(SimpleDataReader &&param) noexcept;
+
+  inline bool is_good() const override;
+  inline streamsize gcount() const noexcept;
+  bool is_open() const noexcept override { return input.is_open(); }
+  bool open_file(const std::filesystem::path &path) noexcept override;
+  void close_file() noexcept override;
+  optional<unsigned char>
+  operator[](const std::streampos &index) const noexcept override;
+  optional<vector<unsigned char>>
+  get_block(streampos offset, streampos size) const noexcept override;
+};
+} // namespace TorrentClient

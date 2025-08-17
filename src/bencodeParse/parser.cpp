@@ -1,11 +1,8 @@
 #include <algorithm>
 #include <cctype>
-#include <charconv>
 #include <fstream>
 #include <iosfwd>
-#include <iterator>
 #include <parser/bencodeparse.hpp>
-#include <stack>
 #include <string>
 
 #include "../src/bencodeParse/parser_aux.cpp"
@@ -32,73 +29,40 @@ struct streamState {
   inline void switch_state() noexcept { canceled = (canceled) ? false : true; }
 };
 
-iparser::iparser() {
-  usedFilePath = "";
-  input = std::ifstream();
-}
-iparser::iparser(const iparser &param) { *this = param; }
+iparser::iparser() = default;
 /// @brief constructs iparser and with opened file
 /// @param filePath path to file
-iparser::iparser(const std::filesystem::path &filePath) { openFile(filePath); }
-iparser::~iparser() { input.close(); }
-/// @brief sets openedFilePath property and initializes std::ifstream input
-/// needed for opening file and checking it .torrent format
-/// @param path path to .torrent file
-/// @return true if everything is ok
-bool iparser::openFile(const std::filesystem::path &path) noexcept {
-  if (input.is_open())
-    input.close();
-  input.clear();
-  input.open(path, std::ios_base::binary);
-  usedFilePath = path;
-  try {
-    runFileChecks();
-  } catch (const std::exception &ex) {
-    input.close();
-    input.clear();
-    usedFilePath = "";
-    return false;
-  }
-  return true;
-}
+iparser::~iparser() { input.~unique_ptr(); }
 void iparser::runFileChecks() const {
-  if (!filesystem::exists(usedFilePath)) {
-    throw runtime_error(usedFilePath.u8string() + string(" does not exist"));
+  if (!filesystem::exists(input->UsedFilePath())) {
+    throw runtime_error(input->UsedFilePath().u8string() +
+                        string(" does not exist"));
   }
 
-  if (!input.is_open())
-    throw std::runtime_error(usedFilePath.u8string() + " file is not open");
+  if (!input->is_open())
+    throw std::runtime_error(input->UsedFilePath().u8string() +
+                             " file is not open");
 
-  string extension = usedFilePath.extension().string();
+  string extension = input->UsedFilePath().extension().string();
   std::transform(extension.begin(), extension.end(), extension.begin(),
                  ::tolower);
   if (extension != ".torrent") {
     throw std::runtime_error(
-        (usedFilePath.u8string() + " not a .torrent file"));
+        (input->UsedFilePath().u8string() + " not a .torrent file"));
   }
 
-  if (std::filesystem::file_size(usedFilePath) > (512 * 1024))
-    throw std::runtime_error(usedFilePath.string() + " file too big");
+  if (std::filesystem::file_size(input->UsedFilePath()) > (512 * 1024))
+    throw std::runtime_error(input->UsedFilePath().string() + " file too big");
 
-  int firstChar = input.peek();
-  if (firstChar != 'd') {
-    std::string errorMsg = "Invalid torrent file: expected 'd', got '";
-    if (firstChar == EOF)
-      errorMsg += "EOF";
-    else
-      errorMsg += static_cast<char>(firstChar);
+  auto firstChar = input->operator[](0);
+  std::string errorMsg = "Invalid torrent file: expected 'd', got '";
+  if (!firstChar.has_value())
+    errorMsg += "EOF";
+  else if (firstChar.value() != 'd') {
+    errorMsg += static_cast<char>(firstChar.value());
     errorMsg += "'";
     throw std::runtime_error(errorMsg);
   }
-}
-unique_ptr<char[]> iparser::readChunk() const noexcept {
-  unique_ptr<char[]> chunk = make_unique<char[]>(chunkSize);
-  input.read(chunk.get(), chunkSize);
-  return chunk;
-}
-
-std::shared_ptr<torrentFile> iparser::getLazyTorrent() {
-  // return std::shared_ptr<torrentFile>(new lazyTorrentFile());
 }
 
 std::optional<streampos>
@@ -108,71 +72,76 @@ iparser::getPropertyPosition(const string_view &param) {
   if (param.size() > chunkSize)
     throw runtime_error(string("search parameter cant be longer than ") +
                         to_string(chunkSize));
-  if (!input.is_open())
-    throw runtime_error("getPropertyPosition error, " + usedFilePath.string() +=
-                        " is not open");
+  if (!input->is_open())
+    throw runtime_error("getPropertyPosition error, " +
+                            input->UsedFilePath().string() += " is not open");
 
-  unsigned int totalSize = param.size() + chunkSize;
-  input.seekg(0, ios::beg);
-  input.clear();
-  streamState state_save{input};
+  unsigned int totalStringSize = param.size() + chunkSize;
+  size_t currentPos = 0;
+  auto read = [&currentPos,
+               this]() -> std::optional<std::vector<unsigned char>> {
+    auto block = input->get_block(currentPos, chunkSize);
+    currentPos += (block.has_value()) ? block.value().size() : 0;
+    return block;
+  };
 
-  unique_ptr<char[]> chunk = make_unique<char[]>(totalSize);
-  std::fill_n(chunk.get(), param.size(), '0');
-  char *begin{};
-  char *end{};
-  char *posIter{};
-  unique_ptr<char[]> overlapBuffer = make_unique<char[]>(param.size());
+  std::optional<std::vector<unsigned char>> chunk{std::vector<unsigned char>{}};
+  chunk.value().reserve(totalStringSize);
+  std::fill_n(chunk.value().front(), param.size(), '0');
+  vector<unsigned char> overlapBuffer{};
+  overlapBuffer.reserve(param.size());
+  auto begin = chunk.value().begin();
+  auto end = chunk.value().end();
+  _Vector_iterator<_Vector_val<std::_Simple_types<unsigned char>>> posIter;
+
+  chunk = read();
   // data that you get when reading a chunkSize of bytes from file
-  std::unique_ptr<char[]> data;
+  std::optional<std::vector<unsigned char>> data{};
+  while (input->is_good()) {
+    if (!chunk.has_value())
+      return nullopt;
 
-  data = move(readChunk());
-  while (readingChecks()) {
-    copy(data.get(), (data.get() + input.gcount()),
-         (chunk.get() + param.size()));
-
-    begin = chunk.get();
-    end = begin + param.size() + input.gcount();
+    unsigned int data_size = data.value().size();
+    copy(
+        data.value().begin(),
+        (data.value().begin() + static_cast<unsigned int>(data.value().size())),
+        (begin + static_cast<unsigned int>(param.size())));
 
     posIter = std::search(begin, end, param.begin(), param.end());
     if (posIter != end) {
-      state_save.switch_state();
-      input.seekg((input.tellg() - input.gcount() -
-                   static_cast<streamoff>(param.size())) +
-                  (posIter - begin));
-      return input.tellg();
+      return ((currentPos - chunk.value().size() -
+               static_cast<streamoff>(param.size())) +
+              (posIter - begin));
     }
 
-    copy(end - param.size(), end, overlapBuffer.get());
-    copy(overlapBuffer.get(), overlapBuffer.get() + param.size(), chunk.get());
+    copy(end - param.size(), end, overlapBuffer.begin());
+    copy(overlapBuffer.begin(), overlapBuffer.begin() + param.size(),
+         chunk.value().begin());
 
-    data = move(readChunk());
+    data = read();
   }
-  if (input.gcount() > 0) {
-    input.clear();
+  if (data.value().size() > 0) {
 
-    begin = chunk.get();
-    end = begin + param.size() + input.gcount();
+    begin = chunk.value().begin();
+    end = begin + static_cast<unsigned int>(param.size()) +
+          static_cast<unsigned int>(data.value().size());
 
-    copy(data.get(), (data.get() + input.gcount()),
-         (chunk.get() + param.size()));
-    copy(overlapBuffer.get(), overlapBuffer.get() + param.size(), chunk.get());
+    copy(data.value().data(), (data.value().data() + chunk.value().size()),
+         (begin + static_cast<unsigned int>(param.size())));
+    copy(overlapBuffer.begin(),
+         overlapBuffer.begin() + static_cast<unsigned int>(param.size()),
+         chunk.value().begin());
 
     posIter = std::search(begin, end, param.begin(), param.end());
     if (posIter != end) {
-      state_save.switch_state();
-      input.seekg((input.tellg() - input.gcount() -
-                   static_cast<streamoff>(param.size())) +
-                  (posIter - begin));
-      return input.tellg();
+      return ((currentPos - chunk.value().size() -
+               static_cast<streamoff>(param.size())) +
+              (posIter - begin));
     }
   }
   return nullopt;
 }
-void iparser::operator=(const iparser &param) noexcept {
-  this->usedFilePath = param.usedFilePath;
-  this->input = std::ifstream(usedFilePath);
-}
+
 bencodeElem TorrentClient::deserialize_simple(const std::string_view &param) {
   size_t current_indent = 1;
   switch (getKeyFromChar(param[0])) {
@@ -217,7 +186,7 @@ bencodeElem TorrentClient::deserialize(const std::string_view &param) {
     if (param[0] != 'l')
       throw runtime_error("bencode deserialization error, wrong list format");
     bencodeElem result(bencodeList{});
-    bencodeList &ref = get<bencodeList>(*result.data);
+    auto &ref = get<bencodeList>(*result.data);
 
     while (param[current_indent] != 'e' && current_indent <= param.length()) {
       ref.push_back(deserialize(param.substr(current_indent)));
@@ -229,7 +198,7 @@ bencodeElem TorrentClient::deserialize(const std::string_view &param) {
   case bencodeKeySymbols::mapstart: {
     size_t current_indent = 1;
     bencodeElem result(bencodeDict{});
-    bencodeDict &ref = get<bencodeDict>(*result.data);
+    auto &ref = get<bencodeDict>(*result.data);
     string key{""};
     pair<string, bencodeElem> my_pair{};
     do {
