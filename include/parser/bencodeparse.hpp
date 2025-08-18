@@ -86,13 +86,14 @@ private:
   static constexpr int chunkSize = 4096;
 
 public:
-  iparser();
-  iparser(std::unique_ptr<DataReader> reader);
+  iparser() = default;
+  iparser(std::unique_ptr<DataReader> reader) noexcept;
   iparser(const iparser &parser) = delete;
   iparser(iparser &&param) noexcept;
   virtual ~iparser();
-  std::unique_ptr<DataReader> input;
+  std::unique_ptr<DataReader> input{};
 
+  inline constexpr int get_chunkSize() const;
   /// @brief used to construct bencodeElem from string
   /// @param param string_view that represents one of bencode types
   /// @return bencodeElem
@@ -120,7 +121,6 @@ public:
   /// needed for opening file and checking it .torrent format
   /// @param path path to .torrent file
   /// @return true if everything is ok
-  bool openFile(const std::filesystem::path &) noexcept;
   iparser &operator=(const iparser &param) noexcept = delete;
   iparser &operator=(iparser &&param) noexcept;
 };

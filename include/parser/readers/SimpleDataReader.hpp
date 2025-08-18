@@ -24,7 +24,7 @@ public:
   SimpleDataReader &operator=(const SimpleDataReader &param) noexcept = delete;
   SimpleDataReader &operator=(SimpleDataReader &&param) noexcept;
 
-  inline bool is_good() const override;
+  inline bool is_good() const override { return input.good(); };
   inline streamsize gcount() const noexcept;
   bool is_open() const noexcept override { return input.is_open(); }
   bool open_file(const std::filesystem::path &path) noexcept override;
@@ -32,6 +32,6 @@ public:
   optional<unsigned char>
   operator[](const std::streampos &index) const noexcept override;
   optional<vector<unsigned char>>
-  get_block(streampos offset, streampos size) const noexcept override;
+  get_block(streampos offset, std::size_t size) const noexcept override;
 };
 } // namespace TorrentClient

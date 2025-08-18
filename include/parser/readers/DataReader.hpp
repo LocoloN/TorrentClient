@@ -27,7 +27,7 @@ public:
   virtual std::optional<unsigned char>
   operator[](const std::streampos &index) const noexcept = 0;
   [[nodiscard]] virtual std::optional<std::vector<unsigned char>>
-  get_block(std::streampos offset, std::streampos size) const noexcept = 0;
+  get_block(std::streampos offset, std::size_t size) const noexcept = 0;
   std::filesystem::path UsedFilePath() { return used_file_path; }
 };
 } // namespace TorrentClient

@@ -29,15 +29,14 @@ struct streamState {
   inline void switch_state() noexcept { canceled = (canceled) ? false : true; }
 };
 
-iparser::iparser() = default;
+iparser::iparser(std::unique_ptr<DataReader> reader) noexcept
+    : input(std::move(reader)) {}
+iparser::iparser(iparser &&param) noexcept : input(std::move(param.input)) {}
+
 /// @brief constructs iparser and with opened file
 /// @param filePath path to file
 iparser::~iparser() { input.~unique_ptr(); }
 void iparser::runFileChecks() const {
-  if (!filesystem::exists(input->UsedFilePath())) {
-    throw runtime_error(input->UsedFilePath().u8string() +
-                        string(" does not exist"));
-  }
 
   if (!input->is_open())
     throw std::runtime_error(input->UsedFilePath().u8string() +
@@ -65,6 +64,7 @@ void iparser::runFileChecks() const {
   }
 }
 
+constexpr int iparser::get_chunkSize() const { return chunkSize; }
 std::optional<streampos>
 iparser::getPropertyPosition(const string_view &param) {
   if (param.empty())
@@ -78,6 +78,7 @@ iparser::getPropertyPosition(const string_view &param) {
 
   unsigned int totalStringSize = param.size() + chunkSize;
   size_t currentPos = 0;
+
   auto read = [&currentPos,
                this]() -> std::optional<std::vector<unsigned char>> {
     auto block = input->get_block(currentPos, chunkSize);
@@ -87,19 +88,20 @@ iparser::getPropertyPosition(const string_view &param) {
 
   std::optional<std::vector<unsigned char>> chunk{std::vector<unsigned char>{}};
   chunk.value().reserve(totalStringSize);
-  std::fill_n(chunk.value().front(), param.size(), '0');
+  std::fill_n(chunk.value().begin(), param.size(), '0');
   vector<unsigned char> overlapBuffer{};
   overlapBuffer.reserve(param.size());
-  auto begin = chunk.value().begin();
-  auto end = chunk.value().end();
-  _Vector_iterator<_Vector_val<std::_Simple_types<unsigned char>>> posIter;
+  std::vector<unsigned char>::iterator begin = chunk.value().begin();
+  std::vector<unsigned char>::iterator end = chunk.value().end();
+  std::vector<unsigned char>::iterator posIter;
 
   chunk = read();
   // data that you get when reading a chunkSize of bytes from file
   std::optional<std::vector<unsigned char>> data{};
   while (input->is_good()) {
-    if (!chunk.has_value())
+    if (!chunk.has_value()) {
       return nullopt;
+    }
 
     unsigned int data_size = data.value().size();
     copy(

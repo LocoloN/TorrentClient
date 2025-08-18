@@ -16,7 +16,7 @@ class iparserTests {
 public:
   iparser testObj;
 
-  iparserTests() : testObj() {}
+  iparserTests() = default;
 
   const std::filesystem::path txtpath = "../test/testfiles/testfile.txt";
   const std::filesystem::path wrongFormatpath =
@@ -24,10 +24,10 @@ public:
   const std::filesystem::path fakeTorrentpath =
       "../test/testfiles/fake.torrent";
   const std::filesystem::path realTorrentpath =
-      "..\\test\\testfiles\\Ultrakill.torrent";
+      R"(..\test\testfiles\Ultrakill.torrent)";
 
   bool fakeTorrentCanBeRead(const std::filesystem::path &torrentPath) {
-    testObj.openFile(torrentPath);
+    testObj.input->open_file(fakeTorrentpath);
     testObj.input->is_good();
     return true;
   }
@@ -35,33 +35,39 @@ public:
     return getKeyFromChar(param);
   }
   bool getPropertyPosTest(const std::string &param) {
-    testObj.openFile(realTorrentpath);
     testObj.runFileChecks();
-    if (testObj.input.eof()) {
-      throw runtime_error(testObj.usedFilePath.string() += " EOF error");
-    }
-    if (testObj.input.fail()) {
-      throw runtime_error(testObj.usedFilePath.string() +=
-                          " badbit or failbit error");
-    }
-    auto pos = testObj.getPropertyPosition(param);
+    INFO(string{"Opened file is "} + testObj.input->UsedFilePath().string());
+    INFO(string{"param = "} + param);
+
+    if (!testObj.input->is_open())
+      throw runtime_error{"ifstream is_good() = false"};
+
+    std::optional<std::streampos> pos;
+    pos = testObj.getPropertyPosition(param);
+
     if (!pos.has_value())
       throw runtime_error(string{"could not find property "} + param +
-                          string{" in file "} + testObj.usedFilePath.string());
-    testObj.input.seekg(pos.value());
-    std::vector<char> result(param.size() + 5);
-    testObj.input.read(result.data(), param.size());
+                          string{" in file "} +
+                          testObj.input->UsedFilePath().string());
 
-    if (param == std::string(result.begin(), (result.begin() + param.size())))
+    auto result = testObj.input->get_block(pos.value(), param.size());
+    if (!result.has_value())
+      throw runtime_error{
+          string{"cannot check value, result.has_value() == false"}};
+
+    if (param == std::string(result.value().begin(),
+                             (result.value().begin() +
+                              static_cast<long long>(param.size()))))
       return true;
     if (pos == -1)
       throw runtime_error(string("cant find property ") +=
                           param + string(" result is -1"));
 
-    throw runtime_error(
-        "property position error, in file " + testObj.usedFilePath.string() +
-        string(" at position ") + to_string(pos.value()) +
-        string(" expected ") + param + " got " + string(result.data()));
+    throw runtime_error("property position error, in file " +
+                        testObj.input->UsedFilePath().string() +
+                        string(" at position ") + to_string(pos.value()) +
+                        string(" expected ") + param + " got " +
+                        string(result.value().begin(), result.value().end()));
 
     return false;
   }
@@ -175,13 +181,8 @@ bool deserialize_test(const string_view &param, const bencodeElem &comp) {
 
 iparserTests helper;
 
-TEST_CASE_METHOD(iparserTests, "torrent can be opened and read",
-                 "[parser][openfile][member]") {
-  REQUIRE(TorrentFileChecksTest(realTorrentpath));
-  REQUIRE(TorrentFileChecksTest(fakeTorrentpath));
-}
-
 TEST_CASE("Get key from bencodeElem variant", "[parser][nonMember]") {
+
   REQUIRE((bencodeElem(int{123})).getStoredTypeAsKey() ==
           bencodeKeySymbols::intstart);
   REQUIRE((bencodeElem(std::string("test"))).getStoredTypeAsKey() ==
@@ -210,6 +211,8 @@ TEST_CASE_METHOD(iparserTests, "Get key from char test",
 }
 TEST_CASE_METHOD(iparserTests, "Get property position test",
                  "[parser][member]") {
+  testObj.input = DataReader::create(readerType::simple);
+  testObj.input->open_file(realTorrentpath);
   auto vals = GENERATE("publisher-url", "beebo", "beebo2",
                        "Textures20:marble-tile-warm", "created by",
                        "/ann13:announce-listll23:http://");

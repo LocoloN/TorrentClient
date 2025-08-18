@@ -1,12 +1,14 @@
-#include <filesystem>
-#include <iostream>
-
 #include "parser/bencodeparse.hpp"
+#include <filesystem>
+#include <parser/readers/DataReader.hpp>
 
 using namespace std;
-
+using namespace TorrentClient;
 int main() {
-    int *p = (int *)malloc(sizeof(int));
-    free(p);
-    return 0;
+  iparser parser{DataReader::create(readerType::simple)};
+
+  parser.input->open_file(std::filesystem::path{
+      R"(E:\Projects\TorrentClient\test\testfiles\Ultrakill.torrent)"});
+  parser.getPropertyPosition("info");
+  return 0;
 }
