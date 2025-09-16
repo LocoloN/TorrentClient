@@ -1,10 +1,6 @@
 #pragma once
 
 #include "parser/torrent_files/torrent_file_base.hpp"
-#include <ctime>
-#include <filesystem>
-#include <map>
-#include <memory>
 
 namespace TorrentClient {
 

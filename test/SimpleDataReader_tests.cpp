@@ -32,12 +32,13 @@ TEST_CASE_METHOD(SimpleDataReader_tests, "SimpleDataReader::operator[]_test",
   testObj->open_file(txtpath);
   REQUIRE(testObj->operator[](2) == 'x');
   REQUIRE(testObj->operator[](3) == 't');
+  REQUIRE(testObj->operator[](5) == '0');
 }
 TEST_CASE_METHOD(SimpleDataReader_tests, "SimpleDataReader::get_block_test",
                  "[member][SimpleDataReader][get_data]") {
-  CHECK(testObj->open_file(realTorrentpath));
+  REQUIRE(testObj->open_file(realTorrentpath));
   auto result = testObj->get_block(0, 1024);
-  CHECK(result.has_value());
+  REQUIRE(result.has_value());
   string compare{
       "d8:announce23:http://bt3.t-ru.org/ann13:announce-listll23:http://"
       "bt3.t-ru.org/annel31:http://retracker.local/"

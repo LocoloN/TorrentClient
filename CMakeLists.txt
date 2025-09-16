@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.30)
-project(TorrentClient)
+project(TorrentClient LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_BUILD_TYPE Debug)
 
@@ -18,6 +19,7 @@ add_library(source_lib ${SOURCE_CODE_FILES})
 target_include_directories(source_lib PUBLIC "include/" "src/")
 
 add_executable(${PROJECT_NAME} src/main.cpp)
+target_compile_options(${PROJECT_NAME} PRIVATE -g)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE source_lib)
 target_include_directories(${PROJECT_NAME} PRIVATE include/)
@@ -25,6 +27,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE include/)
 add_executable(tests ${TEST_FILES})
 target_link_libraries(tests PRIVATE source_lib)
 target_include_directories(tests PRIVATE "include/" "src/")
+target_compile_options(tests PRIVATE -O0 -g)
 
 target_link_libraries(tests PRIVATE Catch2::Catch2WithMain)
 include(CTest)

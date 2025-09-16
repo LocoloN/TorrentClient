@@ -1,13 +1,13 @@
-#include <parser/torrent_files/torrent_file_base.hpp>
-#include <parser/bencodeparse.hpp>
-#include <filesystem>
 #include <ctime>
 #include <exception>
+#include <filesystem>
+#include <parser/bencodeparse.hpp>
+#include <parser/torrent_files/torrent_file_base.hpp>
 
 using namespace TorrentClient;
 
 /// @brief NOT IMPLEMENTED
-/// @param func 
+/// @param func
 // lazyTorrentFile::lazyTorrentFile() {}
 // lazyTorrentFile::~lazyTorrentFile() = default;
 // std::vector<std::string> lazyTorrentFile::announce() const noexcept {
@@ -16,7 +16,7 @@ using namespace TorrentClient;
 // }
 // std::shared_ptr<info> lazyTorrentFile::info_get() const noexcept {
 //     throw std::runtime_error("not implemented");
-    
+
 // }
 // std::string lazyTorrentFile::comment() const noexcept {
 //     throw std::runtime_error("not implemented");

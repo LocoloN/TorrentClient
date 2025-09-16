@@ -16,7 +16,7 @@ class iparserTests {
 public:
   iparser testObj;
 
-  iparserTests() = default;
+  iparserTests() : testObj(DataReader::create(readerType::simple)) {}
 
   const std::filesystem::path txtpath = "../test/testfiles/testfile.txt";
   const std::filesystem::path wrongFormatpath =
@@ -24,7 +24,7 @@ public:
   const std::filesystem::path fakeTorrentpath =
       "../test/testfiles/fake.torrent";
   const std::filesystem::path realTorrentpath =
-      R"(..\test\testfiles\Ultrakill.torrent)";
+      "../test/testfiles/Ultrakill.torrent";
 
   bool fakeTorrentCanBeRead(const std::filesystem::path &torrentPath) {
     testObj.input->open_file(fakeTorrentpath);
@@ -34,50 +34,47 @@ public:
   inline bencodeKeySymbols getKeyFromCharTest(const char &param) {
     return getKeyFromChar(param);
   }
-  bool getPropertyPosTest(const std::string &param) {
-    testObj.runFileChecks();
+  bool getPropertyPosTest(std::string param) {
+    bool isopen{false};
+    isopen = testObj.input->is_open();
+    REQUIRE(isopen);
     INFO(string{"Opened file is "} + testObj.input->UsedFilePath().string());
     INFO(string{"param = "} + param);
-
-    if (!testObj.input->is_open())
-      throw runtime_error{"ifstream is_good() = false"};
+    try {
+      testObj.runFileChecks();
+    } catch (const std::exception &e) {
+      FAIL("Exception: " << e.what());
+    }
+    INFO("runFileChecks successful");
 
     std::optional<std::streampos> pos;
+    INFO("calling getPropertyPosition()");
     pos = testObj.getPropertyPosition(param);
+    INFO("getPropertyPosition finished without exceptions");
 
-    if (!pos.has_value())
-      throw runtime_error(string{"could not find property "} + param +
-                          string{" in file "} +
-                          testObj.input->UsedFilePath().string());
+    REQUIRE(pos.has_value());
 
     auto result = testObj.input->get_block(pos.value(), param.size());
-    if (!result.has_value())
-      throw runtime_error{
-          string{"cannot check value, result.has_value() == false"}};
+    REQUIRE(result.has_value());
 
-    if (param == std::string(result.value().begin(),
-                             (result.value().begin() +
-                              static_cast<long long>(param.size()))))
+    if ((string{result.value().begin(),
+                (result.value().begin() +
+                 static_cast<long long>(param.size()))} == param)) {
       return true;
-    if (pos == -1)
-      throw runtime_error(string("cant find property ") +=
-                          param + string(" result is -1"));
-
-    throw runtime_error("property position error, in file " +
-                        testObj.input->UsedFilePath().string() +
-                        string(" at position ") + to_string(pos.value()) +
-                        string(" expected ") + param + " got " +
-                        string(result.value().begin(), result.value().end()));
-
+    }
+    FAIL(("property position error, in file " +
+          testObj.input->UsedFilePath().string() + string(" at position ") +
+          to_string(pos.value()) + string(" expected ") + param + " got " +
+          string(result.value().begin(), result.value().end())));
     return false;
   }
 };
 
 bool serialize_test(const bencodeElem &elem, string comp) {
   string result = elem.serialize();
-  if (result != comp)
-    throw runtime_error("Wrong serialisation result, expected " + comp +
-                        " got " + result);
+  if (result != comp) {
+    FAIL(("Wrong serialisation result, expected " + comp + " got " + result));
+  }
   return result == comp;
   return false;
 }
@@ -181,6 +178,13 @@ bool deserialize_test(const string_view &param, const bencodeElem &comp) {
 
 iparserTests helper;
 
+TEST_CASE_METHOD(iparserTests, "runFileChecks_test", "[parser][member]") {
+  INFO("Opening file...");
+  testObj.input->open_file(realTorrentpath);
+  INFO("Performing file checks (runFileChecks)");
+  REQUIRE_NOTHROW(testObj.runFileChecks());
+}
+
 TEST_CASE("Get key from bencodeElem variant", "[parser][nonMember]") {
 
   REQUIRE((bencodeElem(int{123})).getStoredTypeAsKey() ==
@@ -209,15 +213,44 @@ TEST_CASE_METHOD(iparserTests, "Get key from char test",
   CHECK(getKeyFromCharTest('8') == bencodeKeySymbols::stringstart);
   CHECK(getKeyFromCharTest('9') == bencodeKeySymbols::stringstart);
 }
+TEST_CASE_METHOD(iparserTests, "Test files exist", "[nonMember]") {
+  INFO("CWD: " + std::filesystem::current_path().string());
+  REQUIRE(std::filesystem::exists(this->fakeTorrentpath));
+  REQUIRE(std::filesystem::exists(this->realTorrentpath));
+  REQUIRE(std::filesystem::exists(this->txtpath));
+  REQUIRE(std::filesystem::exists(this->wrongFormatpath));
+}
+
 TEST_CASE_METHOD(iparserTests, "Get property position test",
                  "[parser][member]") {
-  testObj.input = DataReader::create(readerType::simple);
-  testObj.input->open_file(realTorrentpath);
-  auto vals = GENERATE("publisher-url", "beebo", "beebo2",
+  INFO("Opening file...");
+  REQUIRE(testObj.input->open_file(realTorrentpath));
+  INFO("File opened");
+  auto vals = GENERATE("announce", "publisher-url", "beebo", "beebo2",
                        "Textures20:marble-tile-warm", "created by",
                        "/ann13:announce-listll23:http://");
-  CHECK(getPropertyPosTest(vals));
+  INFO("Calling getPropertyPosTest()");
+  REQUIRE(getPropertyPosTest(vals));
+  // vector<string> vals = {"announce",
+  //                        "publisher-url",
+  //                        "beebo",
+  //                        "beebo2",
+  //                        "Textures20:marble-tile-warm",
+  //                        "created by",
+  //                        "/ann13:announce-listll23:http://"};
+  // for (auto item : vals) {
+  //   CHECK(getPropertyPosTest(item));
+  // }
+  //
+  //  CHECK(getPropertyPosTest("announce"));
+  // CHECK(getPropertyPosTest("publisher-url"));
+  // CHECK(getPropertyPosTest("beebo"));
+  // CHECK(getPropertyPosTest("beebo2"));
+  // CHECK(getPropertyPosTest("Textures20:marble-tile-warm"));
+  // CHECK(getPropertyPosTest("created by"));
+  // CHECK(getPropertyPosTest("/ann13:announce-listll23:http://"));
 }
+
 TEST_CASE("Serialize test", "[bencodeElem][bencodeElemMember]") {
   CHECK(serialize_test(bencodeElem("boba"), string("4:boba")));
   CHECK(serialize_test(bencodeElem(123), string("i123e")));

@@ -19,7 +19,7 @@ public:
   DataReader &operator=(const DataReader &param) noexcept = delete;
   DataReader &operator=(DataReader &&param) noexcept = default;
 
-  inline virtual bool is_good() const = 0;
+  virtual bool is_good() const = 0;
   [[nodiscard]] virtual bool is_open() const noexcept = 0;
   virtual bool open_file(const std::filesystem::path &path) noexcept = 0;
   virtual void close_file() noexcept = 0;

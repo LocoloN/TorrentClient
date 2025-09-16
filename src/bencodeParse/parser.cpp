@@ -82,24 +82,27 @@ iparser::getPropertyPosition(const string_view &param) {
   auto read = [&currentPos,
                this]() -> std::optional<std::vector<unsigned char>> {
     auto block = input->get_block(currentPos, chunkSize);
-    currentPos += (block.has_value()) ? block.value().size() : 0;
+    // currentPos += (block.has_value()) ? block.value().size() : 0;
+    if (block.has_value()) {
+      currentPos += block.value().size();
+    }
     return block;
   };
 
   std::optional<std::vector<unsigned char>> chunk{std::vector<unsigned char>{}};
-  chunk.value().reserve(totalStringSize);
-  std::fill_n(chunk.value().begin(), param.size(), '0');
+  chunk.value().resize(totalStringSize, '0');
   vector<unsigned char> overlapBuffer{};
   overlapBuffer.reserve(param.size());
   std::vector<unsigned char>::iterator begin = chunk.value().begin();
   std::vector<unsigned char>::iterator end = chunk.value().end();
   std::vector<unsigned char>::iterator posIter;
 
-  chunk = read();
   // data that you get when reading a chunkSize of bytes from file
   std::optional<std::vector<unsigned char>> data{};
+
+  data = read();
   while (input->is_good()) {
-    if (!chunk.has_value()) {
+    if (!data.has_value()) {
       return nullopt;
     }
 
