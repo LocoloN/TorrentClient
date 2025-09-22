@@ -42,8 +42,7 @@ SimpleDataReader::operator[](const streampos &index) const noexcept {
   return static_cast<unsigned char>(ch);
 }
 
-SimpleDataReader &
-SimpleDataReader::operator=(SimpleDataReader &&param) noexcept {
+SimpleDataReader& SimpleDataReader::operator=(SimpleDataReader &&param) noexcept {
   input = std::move(param.input);
   used_file_path = param.used_file_path;
   return *this;
@@ -52,8 +51,7 @@ SimpleDataReader::operator=(SimpleDataReader &&param) noexcept {
 optional<vector<unsigned char>>
 SimpleDataReader::get_block(streampos offset, size_t size) const noexcept {
   input.clear();
-  if (offset + static_cast<long long>(size) >
-      filesystem::file_size(used_file_path)) {
+  if (offset >= filesystem::file_size(used_file_path)) {
     return nullopt;
   }
 

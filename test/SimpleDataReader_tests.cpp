@@ -29,7 +29,7 @@ public:
 
 TEST_CASE_METHOD(SimpleDataReader_tests, "SimpleDataReader::operator[]_test",
                  "[member][SimpleDataReader][get_data]") {
-  testObj->open_file(txtpath);
+  REQUIRE(testObj->open_file(txtpath));
   REQUIRE(testObj->operator[](2) == 'x');
   REQUIRE(testObj->operator[](3) == 't');
   REQUIRE(testObj->operator[](5) == '0');

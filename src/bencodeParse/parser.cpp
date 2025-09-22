@@ -37,7 +37,6 @@ iparser::iparser(iparser &&param) noexcept : input(std::move(param.input)) {}
 /// @param filePath path to file
 iparser::~iparser() { input.~unique_ptr(); }
 void iparser::runFileChecks() const {
-
   if (!input->is_open())
     throw std::runtime_error(input->UsedFilePath().u8string() +
                              " file is not open");
@@ -65,9 +64,12 @@ void iparser::runFileChecks() const {
 }
 
 constexpr int iparser::get_chunkSize() const { return chunkSize; }
-std::optional<streampos>
-iparser::getPropertyPosition(const string_view &param) {
+
+std::optional<streampos> iparser::getPropertyPosition(
+    const string_view
+        &param) { // TODO: This function cannot find property in last chunk
   if (param.empty())
+
     return nullopt;
   if (param.size() > chunkSize)
     throw runtime_error(string("search parameter cant be longer than ") +
@@ -95,10 +97,17 @@ iparser::getPropertyPosition(const string_view &param) {
   overlapBuffer.reserve(param.size());
   std::vector<unsigned char>::iterator begin = chunk.value().begin();
   std::vector<unsigned char>::iterator end = chunk.value().end();
-  std::vector<unsigned char>::iterator posIter;
+  std::vector<unsigned char>::iterator posIter{};
 
   // data that you get when reading a chunkSize of bytes from file
   std::optional<std::vector<unsigned char>> data{};
+
+  auto calculateResult = [&]() -> optional<streampos> {
+    optional<streampos> result{0};
+    result = currentPos -
+             ((data.value().size() + param.size()) - distance(begin, posIter));
+    return result;
+  };
 
   data = read();
   while (input->is_good()) {
@@ -114,9 +123,7 @@ iparser::getPropertyPosition(const string_view &param) {
 
     posIter = std::search(begin, end, param.begin(), param.end());
     if (posIter != end) {
-      return ((currentPos - chunk.value().size() -
-               static_cast<streamoff>(param.size())) +
-              (posIter - begin));
+      return calculateResult();
     }
 
     copy(end - param.size(), end, overlapBuffer.begin());
@@ -131,17 +138,17 @@ iparser::getPropertyPosition(const string_view &param) {
     end = begin + static_cast<unsigned int>(param.size()) +
           static_cast<unsigned int>(data.value().size());
 
-    copy(data.value().data(), (data.value().data() + chunk.value().size()),
-         (begin + static_cast<unsigned int>(param.size())));
+    copy(
+        data.value().begin(),
+        (data.value().begin() + static_cast<unsigned int>(data.value().size())),
+        (begin + static_cast<unsigned int>(param.size())));
     copy(overlapBuffer.begin(),
          overlapBuffer.begin() + static_cast<unsigned int>(param.size()),
          chunk.value().begin());
 
     posIter = std::search(begin, end, param.begin(), param.end());
     if (posIter != end) {
-      return ((currentPos - chunk.value().size() -
-               static_cast<streamoff>(param.size())) +
-              (posIter - begin));
+      return calculateResult();
     }
   }
   return nullopt;

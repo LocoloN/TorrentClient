@@ -34,40 +34,6 @@ public:
   inline bencodeKeySymbols getKeyFromCharTest(const char &param) {
     return getKeyFromChar(param);
   }
-  bool getPropertyPosTest(std::string param) {
-    bool isopen{false};
-    isopen = testObj.input->is_open();
-    REQUIRE(isopen);
-    INFO(string{"Opened file is "} + testObj.input->UsedFilePath().string());
-    INFO(string{"param = "} + param);
-    try {
-      testObj.runFileChecks();
-    } catch (const std::exception &e) {
-      FAIL("Exception: " << e.what());
-    }
-    INFO("runFileChecks successful");
-
-    std::optional<std::streampos> pos;
-    INFO("calling getPropertyPosition()");
-    pos = testObj.getPropertyPosition(param);
-    INFO("getPropertyPosition finished without exceptions");
-
-    REQUIRE(pos.has_value());
-
-    auto result = testObj.input->get_block(pos.value(), param.size());
-    REQUIRE(result.has_value());
-
-    if ((string{result.value().begin(),
-                (result.value().begin() +
-                 static_cast<long long>(param.size()))} == param)) {
-      return true;
-    }
-    FAIL(("property position error, in file " +
-          testObj.input->UsedFilePath().string() + string(" at position ") +
-          to_string(pos.value()) + string(" expected ") + param + " got " +
-          string(result.value().begin(), result.value().end())));
-    return false;
-  }
 };
 
 bool serialize_test(const bencodeElem &elem, string comp) {
@@ -220,35 +186,58 @@ TEST_CASE_METHOD(iparserTests, "Test files exist", "[nonMember]") {
   REQUIRE(std::filesystem::exists(this->txtpath));
   REQUIRE(std::filesystem::exists(this->wrongFormatpath));
 }
-
 TEST_CASE_METHOD(iparserTests, "Get property position test",
                  "[parser][member]") {
-  INFO("Opening file...");
-  REQUIRE(testObj.input->open_file(realTorrentpath));
+  INFO("Opening file " + realTorrentpath.string());
+  testObj.input->open_file(realTorrentpath);
+  REQUIRE_NOTHROW(testObj.runFileChecks());
+  REQUIRE(testObj.input->is_open());
   INFO("File opened");
-  auto vals = GENERATE("announce", "publisher-url", "beebo", "beebo2",
-                       "Textures20:marble-tile-warm", "created by",
-                       "/ann13:announce-listll23:http://");
-  INFO("Calling getPropertyPosTest()");
-  REQUIRE(getPropertyPosTest(vals));
-  // vector<string> vals = {"announce",
-  //                        "publisher-url",
-  //                        "beebo",
-  //                        "beebo2",
-  //                        "Textures20:marble-tile-warm",
-  //                        "created by",
-  //                        "/ann13:announce-listll23:http://"};
-  // for (auto item : vals) {
-  //   CHECK(getPropertyPosTest(item));
-  // }
-  //
-  //  CHECK(getPropertyPosTest("announce"));
-  // CHECK(getPropertyPosTest("publisher-url"));
-  // CHECK(getPropertyPosTest("beebo"));
-  // CHECK(getPropertyPosTest("beebo2"));
-  // CHECK(getPropertyPosTest("Textures20:marble-tile-warm"));
-  // CHECK(getPropertyPosTest("created by"));
-  // CHECK(getPropertyPosTest("/ann13:announce-listll23:http://"));
+  vector<string> vals = {"announce",
+                         "publisher-url",
+                         "beebo",
+                         "beebo2",
+                         "Textures20:marble-tile-warm",
+                         "created by",
+                         "/ann13:announce-listll23:http://"};
+
+  std::optional<std::streampos> pos{};
+  std::optional<std::vector<unsigned char>> result{};
+
+  for (auto &item : vals) {
+    INFO(" calling getPropertyPosition with argument " + item);
+    pos = testObj.getPropertyPosition(item);
+    INFO("getPropertyPosition with argument " + item +
+         " finished without exceptions");
+    if (!pos.has_value()) {
+      FAIL("ERROR: Could not find property " + item);
+      continue;
+    }
+    INFO("Found position is " + to_string(pos.value()));
+
+    result = testObj.input->get_block(pos.value(), item.size());
+    if (!result.has_value()) {
+      // auto testval = to_string(result.value().size());
+      FAIL("ERROR: Could not read from found position");
+      continue;
+    }
+
+    if (result.value().size() != item.size()) {
+      FAIL("ERROR: Read block size mismatch. Expected: " +
+           to_string(item.size()) +
+           ", got: " + to_string(result.value().size()));
+      continue;
+    }
+
+    std::string resultString{
+        std::string{result.value().begin(), result.value().end()}};
+    INFO("String at found location is " + resultString);
+    if (resultString != item) {
+      FAIL("ERROR: Strings don't match. Expected: " + item +
+           ", got: " + resultString);
+    }
+    CHECK(resultString == item);
+  }
 }
 
 TEST_CASE("Serialize test", "[bencodeElem][bencodeElemMember]") {
