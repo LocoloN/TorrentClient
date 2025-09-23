@@ -125,7 +125,9 @@ public:
   iparser &operator=(iparser &&param) noexcept;
 };
 
-class oparser;
+class oparser {
+  oparser() {}
+};
 
 bencodeKeySymbols getKeyFromChar(char param);
 } // namespace TorrentClient

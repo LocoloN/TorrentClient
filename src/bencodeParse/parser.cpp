@@ -65,9 +65,8 @@ void iparser::runFileChecks() const {
 
 constexpr int iparser::get_chunkSize() const { return chunkSize; }
 
-std::optional<streampos> iparser::getPropertyPosition(
-    const string_view
-        &param) { // TODO: This function cannot find property in last chunk
+std::optional<streampos>
+iparser::getPropertyPosition(const string_view &param) {
   if (param.empty())
 
     return nullopt;
@@ -95,8 +94,9 @@ std::optional<streampos> iparser::getPropertyPosition(
   chunk.value().resize(totalStringSize, '0');
   vector<unsigned char> overlapBuffer{};
   overlapBuffer.reserve(param.size());
-  std::vector<unsigned char>::iterator begin = chunk.value().begin();
-  std::vector<unsigned char>::iterator end = chunk.value().end();
+
+  std::vector<unsigned char>::iterator begin{chunk.value().begin()};
+  std::vector<unsigned char>::iterator end{chunk.value().end()};
   std::vector<unsigned char>::iterator posIter{};
 
   // data that you get when reading a chunkSize of bytes from file
@@ -152,6 +152,11 @@ std::optional<streampos> iparser::getPropertyPosition(
     }
   }
   return nullopt;
+}
+
+std::shared_ptr<torrentFile> iparser::get_torrent(TorrentFiletype file_type) {
+
+  return nullptr;
 }
 
 bencodeElem TorrentClient::deserialize_simple(const std::string_view &param) {
