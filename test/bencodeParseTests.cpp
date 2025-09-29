@@ -186,6 +186,11 @@ TEST_CASE_METHOD(iparserTests, "Test files exist", "[nonMember]") {
   REQUIRE(std::filesystem::exists(this->txtpath));
   REQUIRE(std::filesystem::exists(this->wrongFormatpath));
 }
+TEST_CASE_METHOD(iparserTests, "GetStringPropLength test", "[parser][member]") {
+  REQUIRE(getStringPropLength(string{"0:"}) == 0);
+  REQUIRE(getStringPropLength(string{"1:a"}) == 1);
+  REQUIRE(getStringPropLength(string{"5:aboba"}) == 5);
+}
 TEST_CASE_METHOD(iparserTests, "Get property position test",
                  "[parser][member]") {
   INFO("Opening file " + realTorrentpath.string());
@@ -288,6 +293,7 @@ TEST_CASE("calculateStringSize test", "[bencodeElem][bencodeElemMember]") {
       57));
 }
 TEST_CASE("Deserialize test", "[bencodeElem][nonMember]") {
+  CHECK(deserialize_test(string{"0:"}, bencodeElem{string{""}}));
   CHECK(deserialize_test(string{"i1234e"}, bencodeElem{int{1234}}));
   CHECK(
       deserialize_test(string{"8:proverka"}, bencodeElem{string("proverka")}));

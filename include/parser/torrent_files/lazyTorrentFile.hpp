@@ -9,7 +9,7 @@ private:
 public:
   lazyInfo();
   virtual long unsigned int piece_length() const;
-  virtual void pieces() const;
+  virtual LazyProperty<std::string> pieces() const;
   virtual std::string name() const;
   virtual std::map<long int, std::filesystem::path> files() const;
 };

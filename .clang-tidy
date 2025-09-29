@@ -32,5 +32,7 @@ CheckOptions:
     value:           llvm
   - key:             modernize-use-nullptr.NullMacros
     value:           'NULL'
+  - key:             cppcoreguidelines-avoid-protected-member
+    value:           false
 ...
 

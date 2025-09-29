@@ -5,8 +5,6 @@
 #include <parser/bencodeparse.hpp>
 #include <string>
 
-#include "../src/bencodeParse/parser_aux.cpp"
-
 using namespace std;
 using namespace TorrentClient;
 

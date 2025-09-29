@@ -107,7 +107,6 @@ public:
   /// @return
   std::optional<std::streampos>
   getPropertyPosition(const std::string_view &param);
-
   /// @brief checks opened file for .torrent extension and if it is suited for
   /// reading
   /// @exception runtime_error if not a .torrent file, file too big, file is not
@@ -124,6 +123,33 @@ public:
   iparser &operator=(const iparser &param) noexcept = delete;
   iparser &operator=(iparser &&param) noexcept;
 };
+
+/// accepts start bencode string property and converts it to type
+inline std::optional<size_t>
+getStringPropLength(const std::string_view &param,
+                    size_t delimeter_pos = -1) noexcept {
+  std::optional<size_t> result{};
+  if (delimeter_pos == -1)
+    delimeter_pos = param.find(':');
+  if (delimeter_pos == std::string::npos)
+    return result;
+  std::string len_str{param.substr(0, delimeter_pos)};
+  return result = stoull(len_str);
+}
+
+static inline std::pair<size_t, std::string_view>
+process_bencode_string(const std::string_view &param) {
+  std::pair<size_t, std::string_view> result;
+
+  size_t delimeter_pos{param.find(':')};
+  auto _first = getStringPropLength(param);
+  result.first = (_first.has_value()) ? _first.value() : -1;
+  result.second = param.substr(delimeter_pos + 1, result.first);
+  if (result.first != result.second.length())
+    throw std::runtime_error(
+        "bencode deserialization error: wrong string format");
+  return result;
+}
 
 class oparser {
   oparser() {}
