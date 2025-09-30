@@ -157,11 +157,16 @@ std::shared_ptr<torrentFile> iparser::get_torrent(TorrentFiletype file_type) {
   return nullptr;
 }
 
-bencodeElem TorrentClient::deserialize_simple(const std::string_view &param) {
+optional<bencodeElem>
+TorrentClient::deserialize_simple(const std::string_view &param) {
   size_t current_indent = 1;
   switch (getKeyFromChar(param[0])) {
   case bencodeKeySymbols::stringstart: {
-    return bencodeElem{string{process_bencode_string(param).second}};
+    auto buffer{process_bencode_string(param).second};
+    return nullopt;
+    return bencodeElem{buffer.value()};
+    return (buffer.has_value()) ? make_optional(bencodeElem{buffer.value()})
+                                : nullopt;
   }
   case bencodeKeySymbols::intstart: {
     if (param[0] != 'i')
@@ -169,8 +174,17 @@ bencodeElem TorrentClient::deserialize_simple(const std::string_view &param) {
     if (param[1] == '0')
       throw runtime_error("bencode deserialization error, invalid int format");
     size_t end_pos{param.find("e")};
-    int result{stoi(string{param.substr(1, end_pos - 1)})}; // i _ _ _ e
-    return bencodeElem{result};
+    if (end_pos == string::npos)
+      return nullopt;
+    optional<int> result{};
+    try {
+      result = stoi(string{param.substr(1, end_pos - 1)}); // i _ _ _ e
+
+    } catch (exception ex) {
+      return nullopt;
+    }
+
+    return bencodeElem{result.value()};
   }
   case bencodeKeySymbols::liststart: {
     throw runtime_error{
@@ -188,7 +202,9 @@ bencodeElem TorrentClient::deserialize_simple(const std::string_view &param) {
     return bencodeElem{};
   }
 }
-bencodeElem TorrentClient::deserialize(const std::string_view &param) {
+// TODO: dopisat
+std::optional<bencodeElem>
+TorrentClient::deserialize(const std::string_view &param) {
   switch (getKeyFromChar(param[0])) {
   case bencodeKeySymbols::stringstart: {
     return deserialize_simple(param);
@@ -200,16 +216,22 @@ bencodeElem TorrentClient::deserialize(const std::string_view &param) {
     size_t current_indent = 1;
     if (param[0] != 'l')
       throw runtime_error("bencode deserialization error, wrong list format");
-    bencodeElem result(bencodeList{});
-    auto &ref = get<bencodeList>(*result.data);
+    optional<bencodeElem> result(bencodeList{});
+    auto &ref = get<bencodeList>(*result.value().data); // shortcut
+    optional<bencodeElem> temp;
 
     while (param[current_indent] != 'e' && current_indent <= param.length()) {
-      ref.push_back(deserialize(param.substr(current_indent)));
+      temp = deserialize(param.substr(current_indent));
+      if (!temp.has_value()) {
+        return nullopt;
+      }
 
+      ref.push_back(temp.value());
       current_indent += ref.back().calculateStringSize();
     };
     return result;
   }
+    // TODO: dodelat
   case bencodeKeySymbols::mapstart: {
     size_t current_indent = 1;
     bencodeElem result(bencodeDict{});
@@ -218,8 +240,9 @@ bencodeElem TorrentClient::deserialize(const std::string_view &param) {
     pair<string, bencodeElem> my_pair{};
     do {
       if (getKeyFromChar(param[current_indent]) !=
-          bencodeKeySymbols::stringstart)
+          bencodeKeySymbols::stringstart) {
         throw runtime_error("wrong bencode dictionary format: no string key");
+      }
       bencodeElem &&key_elem = deserialize(param.substr(current_indent));
       key = get<string>(*key_elem.data);
       current_indent += key_elem.calculateStringSize();
@@ -233,8 +256,7 @@ bencodeElem TorrentClient::deserialize(const std::string_view &param) {
     return result;
   }
   default:
-    throw runtime_error(string{"wrong bencode format: misplaced symbol "} +
-                        param[0]);
+    return nullopt;
     break;
   }
 }

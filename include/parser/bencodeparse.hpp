@@ -67,13 +67,13 @@ std::string serialize(const int &param);
 /// @exception runtime_error if cant deserialise
 /// @param param string that starts with one of bencode types
 /// @return bencodeElem
-bencodeElem deserialize(const std::string_view &param);
+std::optional<bencodeElem> deserialize(const std::string_view &param);
 /// @brief used to deserialize simple bencode types - int and string
 /// @param param string starting with simple type
 /// @exception runtime_error on attempt to use this function on bencode
 /// container type - list or dict
 /// @return bencodeElem with int or string type
-bencodeElem deserialize_simple(const std::string_view &param);
+std::optional<bencodeElem> deserialize_simple(const std::string_view &param);
 
 enum TorrentFiletype {
   empty = 0,
@@ -132,22 +132,25 @@ getStringPropLength(const std::string_view &param,
   if (delimeter_pos == -1)
     delimeter_pos = param.find(':');
   if (delimeter_pos == std::string::npos)
-    return result;
+    return std::nullopt;
   std::string len_str{param.substr(0, delimeter_pos)};
   return result = stoull(len_str);
 }
 
-static inline std::pair<size_t, std::string_view>
-process_bencode_string(const std::string_view &param) {
-  std::pair<size_t, std::string_view> result;
+static inline std::pair<std::optional<size_t>, std::optional<std::string>>
+process_bencode_string(const std::string_view &param) noexcept {
+  std::pair<std::optional<size_t>, std::optional<std::string>> result{
+      std::nullopt, std::nullopt};
 
   size_t delimeter_pos{param.find(':')};
-  auto _first = getStringPropLength(param);
-  result.first = (_first.has_value()) ? _first.value() : -1;
-  result.second = param.substr(delimeter_pos + 1, result.first);
-  if (result.first != result.second.length())
-    throw std::runtime_error(
-        "bencode deserialization error: wrong string format");
+  result.first = getStringPropLength(param, delimeter_pos);
+  if (!result.first.has_value()) {
+    return result;
+  }
+  result.second = param.substr(delimeter_pos + 1, result.first.value());
+  if (result.first.value() != result.second.value().length()) {
+    result.second = std::nullopt;
+  }
   return result;
 }
 

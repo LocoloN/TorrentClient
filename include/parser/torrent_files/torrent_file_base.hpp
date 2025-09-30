@@ -3,7 +3,6 @@
 #include <filesystem>
 #include <map>
 #include <memory>
-#include <parser/torrent_files/LazyProperty.hpp>
 #include <string>
 #include <vector>
 
@@ -19,7 +18,7 @@ public:
 
   virtual ~info() = default;
   virtual long unsigned int piece_length() const = 0;
-  virtual LazyProperty<std::string> pieces() const = 0;
+  virtual std::string pieces() const = 0;
   virtual std::string name() const = 0;
   virtual std::map<long int, std::filesystem::path> files() const = 0;
 };

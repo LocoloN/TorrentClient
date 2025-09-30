@@ -20,19 +20,24 @@ public:
   LazyProperty(const LazyProperty &param) noexcept = delete;
 
   LazyProperty(LazyProperty &&param) noexcept = default;
-
+  /// @brief main constructor for lazy property
+  /// @param loader is function that loads the returned property
+  /// @param position of property inside file, if not set, than it is assumed
+  /// that loader contains position inside itself
   LazyProperty(std::function<std::optional<T>()> loader,
-               std::streampos position)
+               std::streampos position = -1)
       : _loader(std::move(loader)), _position(position) {}
 
-  std::optional<T> Get() {
+  std::optional<std::unique_ptr<T>> Get() {
     if (ptr.has_value()) {
       return *ptr.value();
     }
-    std::optional<std::unique_ptr<T>> buffer = _loader();
-    if (!buffer.has_value())
-      return std::nullopt;
-    ptr = buffer;
+    auto loadedValueBuffer = _loader();
+
+    ptr = std::make_shared<T>((!loadedValueBuffer.has_value())
+                                  ? std::nullopt
+                                  : loadedValueBuffer.value());
+    return ptr;
   }
 
   void Dispose() {
